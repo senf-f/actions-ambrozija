@@ -26,7 +26,7 @@ driver.get(url)
 
 driver.find_element(By.CSS_SELECTOR, "#perpetuum-cookie-bar .perpetuum-button-dismiss a").click()
 
-gradovi = ["Zagreb"]  # , "Split", "Pula", "Zadar", "Dubrovnik"]
+gradovi = ["Zagreb", "Split", "Pula", "Zadar", "Dubrovnik"]
 
 stare_biljke = []
 for biljka in biljke.Biljka:
@@ -35,11 +35,9 @@ for biljka in biljke.Biljka:
 
 def nove_biljke_su():
     # uzmi vrijednosti iz //div[@class='biljka-naslov']//span
-    _xpath = "//div[@class='biljka-naslov']//span"
-    _rezultat = driver.find_elements(By.XPATH, _xpath)
+    _rezultat = driver.find_elements(By.XPATH, "//div[@class='biljka-naslov']//span")
     _biljke = []
     if len(_rezultat) > 0:
-
         for r in _rezultat:
             _biljke.append(r.text)
 
@@ -48,32 +46,33 @@ def nove_biljke_su():
 
 spomenute_biljke = []
 
-for biljka in biljke.Biljka:
-    date = datetime.datetime.now()
 
-    if not os.path.exists(f"data/{date.year}/{date.month}"):
-        os.makedirs(f"data/{date.year}/{date.month}")
+date = datetime.datetime.now()
 
-    for grad in gradovi:
-        izbornik = Select(driver.find_element(By.CSS_SELECTOR, "select[id^='edit-title']"))
-        izbornik.select_by_visible_text(grad)
-        WebDriverWait(driver, 15).until(
-            EC.invisibility_of_element_located((By.CSS_SELECTOR, ".ajax-progress-fullscreen")))
-        # provjeri ima li novih biljaka
-        spomenute_biljke.append((nove_biljke_su()))
-        # provjeri koncentraciju peluda za biljku
+if not os.path.exists(f"data/{date.year}/{date.month}"):
+    os.makedirs(f"data/{date.year}/{date.month}")
+
+for grad in gradovi:
+    izbornik = Select(driver.find_element(By.CSS_SELECTOR, "select[id^='edit-title']"))
+    izbornik.select_by_visible_text(grad)
+    WebDriverWait(driver, 15).until(
+        EC.invisibility_of_element_located((By.CSS_SELECTOR, ".ajax-progress-fullscreen")))
+    # provjeri ima li novih biljaka
+    spomenute_biljke.append((nove_biljke_su()))
+    # provjeri koncentraciju peluda za biljku
+    for biljka in biljke.Biljka:
         xpath = (
             f"//div[@class='biljka-naslov'][contains(., '{biljka.value}')]/following-sibling::div//div[@class='mjerenje-container']//div[contains(@class, 'field-field-vrijednost')][2]")
         rezultat = len(driver.find_elements(By.XPATH, xpath))
-        koncentracija_peluda = WebDriverWait(driver, 5).until(
-            EC.visibility_of_element_located((By.XPATH, xpath))).text if rezultat else "0.0"
-        print(koncentracija_peluda)
+        if rezultat:
+            pelud = WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.XPATH, xpath))).text
+            print(f"{grad}, {biljka.value}: {pelud}")
 
-        with open(
-                f"data/{date.year}/{date.month}/{grad} - "
-                f"{biljka.name} pelud za {date.month}.{date.year}", "a", newline='') as f:
-            writer = csv.writer(f, escapechar=',', quoting=csv.QUOTE_NONE)
-            writer.writerow([f"{koncentracija_peluda},{date.today()}"])
+            with open(
+                    f"data/{date.year}/{date.month}/{grad} - "
+                    f"+{biljka.name} pelud za {date.month}.{date.year}", "a", newline='') as f:
+                writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
+                writer.writerow([f"{pelud} {date.today()}"])
 
             # https://stackoverflow.com/questions/23882024/using-python-csv-writer-without-quotations
 
