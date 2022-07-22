@@ -70,7 +70,7 @@ def main():
 
                 with open(
                         f"data/{date.year}/{date.month}/{grad} - "
-                        f"+{biljka.name} pelud za {date.month}.{date.year}", "a", newline='') as f:
+                        f"{biljka.name} pelud za {date.month}.{date.year}", "a", newline='') as f:
                     writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
                     writer.writerow([f"{pelud} {date.today()}"])
 
