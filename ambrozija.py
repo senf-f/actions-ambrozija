@@ -74,8 +74,6 @@ def main():
                     writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
                     writer.writerow([f"{pelud} {date.today()}"])
 
-                # https://stackoverflow.com/questions/23882024/using-python-csv-writer-without-quotations
-
     # spomenute_biljke je lista lista, sljedeca linija to pretvara u obicnu listu
     flat_spomenute_biljke = [item for sublist in spomenute_biljke for item in sublist]
     flat_spomenute_biljke.sort()

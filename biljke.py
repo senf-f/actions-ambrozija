@@ -15,3 +15,4 @@ class Biljka(enum.Enum):
     AMBROZIJA = "Ambrozija"
     HRAST = "Hrast (Quercus ilex)"
     LOBODA = "Loboda (Chenopodiaceae)"
+    HRAST_SP = "Hrast (Quercus sp.)"
