@@ -12,7 +12,7 @@ class Biljka(enum.Enum):
     HRAST_CRNIKA = "Hrast crnika (Quercus ilex)"
     CRKVINA = "Crkvina (Parietaria sp.)"
     CEMPRESI = "Čempresi (Cupressaceae)"
-    AMBROZIJA = "Ambrozija"
+    AMBROZIJA = "Ambrozija (Ambrosia sp.)"
     HRAST = "Hrast (Quercus ilex)"
     LOBODA = "Loboda (Chenopodiaceae)"
     HRAST_SP = "Hrast (Quercus sp.)"

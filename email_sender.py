@@ -15,7 +15,7 @@ def send_email(subject, sender, recipient, text):
 
     with smtplib.SMTP("smtp.office365.com", 587) as server:
         server.starttls()
-        if os.environ["EMAIL_USER"]:
+        if "EMAIL_USER" in os.environ:
             server.login(user=os.environ["EMAIL_USER"], password=os.environ["EMAIL_PASSWORD"])
         else:
             import creds
