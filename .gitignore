@@ -188,3 +188,4 @@ creds.py
 # Gradle
 .idea/**/gradle.xml
 .idea/**/libraries
+/.idea/git_toolbox_prj.xml
