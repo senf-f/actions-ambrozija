@@ -16,3 +16,4 @@ class Biljka(enum.Enum):
     HRAST = "Hrast (Quercus ilex)"
     LOBODA = "Loboda (Chenopodiaceae)"
     HRAST_SP = "Hrast (Quercus sp.)"
+    PELIN = "Pelin (Artemisia sp.)"
