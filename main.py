@@ -85,11 +85,14 @@ def main():
     print(res)
     # usporedi sa postojecim popisom
     razlika = set(res).difference(set(stare_biljke))
-    if len(razlika) > 0:
-        email_sender.send_email('Nove biljke na peludnoj prognozi', 'senfsend@outlook.com', 'mate.mrse@gmail.com',
-                                f"Nove biljke: {razlika}")
-        print(razlika)
-        print("Email poslan!")
+    try:
+        if len(razlika) > 0:
+            email_sender.send_email('Nove biljke na peludnoj prognozi', 'senfsend@outlook.com', 'mate.mrse@gmail.com',
+                                    f"Nove biljke: {razlika}")
+            print(razlika)
+            print("Email poslan!")
+    except Exception as e:
+        print(e)
 
     driver.quit()
     print(f"Vrijeme izvršavanja: {perf_counter() - start} sekundi.")
