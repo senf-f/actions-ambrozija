@@ -87,10 +87,15 @@ def main():
     razlika = set(res).difference(set(stare_biljke))
     try:
         if len(razlika) > 0:
+            mail_body = f"Nove biljke: {razlika}"
             email_sender.send_email('Nove biljke na peludnoj prognozi', 'senfsend@outlook.com', 'mate.mrse@gmail.com',
-                                    f"Nove biljke: {razlika}")
+                                    mail_body)
             print(razlika)
             print("Email poslan!")
+            with open("data/log", "a", newline='') as f:
+                writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
+                writer.writerow([f"{date.today()}: {mail_body}"])
+
     except Exception as e:
         print(e)
 
