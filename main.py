@@ -14,6 +14,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 import biljke
 import email_sender
+import telegram_sender
 
 
 def main():
@@ -84,13 +85,16 @@ def main():
     try:
         if len(razlika) > 0:
             mail_body = f"Nove biljke: {razlika}"
-            email_sender.send_email('Nove biljke na peludnoj prognozi', 'senfsend@outlook.com', 'mate.mrse@gmail.com',
-                                    mail_body)
-            print(razlika)
-            print("Email poslan!")
-            with open("data/log", "a", newline='') as f:
-                writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
-                writer.writerow([f"{date.today()}: {mail_body}"])
+
+            # email_sender.send_email('Nove biljke na peludnoj prognozi', 'senfsend@outlook.com', 'mate.mrse@gmail.com',
+            #                         mail_body)
+            # print(razlika)
+            # print("Email poslan!")
+            # with open("data/log", "a", newline='') as f:
+            #     writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
+            #     writer.writerow([f"{date.today()}: {mail_body}"])
+
+            telegram_sender.send_to_telegram(mail_body)
 
     except Exception as e:
         print(e)

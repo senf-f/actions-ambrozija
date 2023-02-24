@@ -17,3 +17,8 @@ class Biljka(enum.Enum):
     LOBODA = "Loboda (Chenopodiaceae)"
     HRAST_SP = "Hrast (Quercus sp.)"
     PELIN = "Pelin (Artemisia sp.)"
+    BRIJEST = "Brijest (Ulmus sp.)"
+    JASEN = "Jasen (Fraxinus sp.)"
+    JOHA = "Joha (Alnus sp.)"
+    LIJESKA = "Lijeska (Corylus sp.)"
+    TOPOLA = "Topola (Populus sp.)"
