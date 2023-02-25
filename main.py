@@ -13,7 +13,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 import biljke
-import email_sender
 import telegram_sender
 
 
@@ -95,6 +94,7 @@ def main():
             #     writer.writerow([f"{date.today()}: {mail_body}"])
 
             telegram_sender.send_to_telegram(mail_body)
+            print(">>> Poslano na telegram!")
 
     except Exception as e:
         print(e)

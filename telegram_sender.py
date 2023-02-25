@@ -4,7 +4,7 @@ import requests
 
 def send_to_telegram(content):
 
-    # print(os.environ)
+    print("|||>\n", os.environ)
     if "TELEGRAM_API_TOKEN_STAMPAR" in os.environ:
         api_token = os.environ["TELEGRAM_API_TOKEN_STAMPAR"]
         chat_id = os.environ["TELEGRAM_CHAT_ID"]
