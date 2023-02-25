@@ -83,18 +83,9 @@ def main():
     razlika = set(res).difference(set(postojece_biljke))
     try:
         if len(razlika) > 0:
-            mail_body = f"Nove biljke: {razlika}"
-
-            # email_sender.send_email('Nove biljke na peludnoj prognozi', 'senfsend@outlook.com', 'mate.mrse@gmail.com',
-            #                         mail_body)
-            # print(razlika)
-            # print("Email poslan!")
-            # with open("data/log", "a", newline='') as f:
-            #     writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
-            #     writer.writerow([f"{date.today()}: {mail_body}"])
-
-            telegram_sender.send_to_telegram(mail_body)
-            print(">>>> Poslano na telegram!")
+            content = f"Nove biljke: {razlika}"
+            telegram_sender.send_to_telegram(content)
+            print(f">>>> Poslano na telegram: {content}.")
 
     except Exception as e:
         print(e)
