@@ -94,7 +94,7 @@ def main():
             #     writer.writerow([f"{date.today()}: {mail_body}"])
 
             telegram_sender.send_to_telegram(mail_body)
-            print(">>> Poslano na telegram!")
+            print(">>>> Poslano na telegram!")
 
     except Exception as e:
         print(e)
