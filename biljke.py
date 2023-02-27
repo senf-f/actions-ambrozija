@@ -22,3 +22,4 @@ class Biljka(enum.Enum):
     JOHA = "Joha (Alnus sp.)"
     LIJESKA = "Lijeska (Corylus sp.)"
     TOPOLA = "Topola (Populus sp.)"
+    VRBA = "Vrba (Salix sp.)"
