@@ -24,3 +24,4 @@ class Biljka(enum.Enum):
     TOPOLA = "Topola (Populus sp.)"
     VRBA = "Vrba (Salix sp.)"
     GRAB = "Grab (Carpinus sp.)"
+    KISELICA = "Kiselica (Rumex sp.)"
