@@ -25,3 +25,4 @@ class Biljka(enum.Enum):
     VRBA = "Vrba (Salix sp.)"
     GRAB = "Grab (Carpinus sp.)"
     KISELICA = "Kiselica (Rumex sp.)"
+    BREZA = "Breza (Betula sp.)"
