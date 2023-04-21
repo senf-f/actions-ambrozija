@@ -27,3 +27,4 @@ class Biljka(enum.Enum):
     KISELICA = "Kiselica (Rumex sp.)"
     BREZA = "Breza (Betula sp.)"
     PLATANA = "Platana (Platanus sp.)"
+    ORAH = "Orah (Juglans sp.)"
