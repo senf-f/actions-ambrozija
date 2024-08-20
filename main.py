@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 
 import biljke
 import telegram_sender
@@ -28,7 +27,12 @@ def main():
     driver.maximize_window()
     driver.get(url)
 
-    gradovi = ["Zagreb", "Split", "Pula", "Zadar", "Dubrovnik"]
+    izbornik = Select(driver.find_element(By.CSS_SELECTOR, "select[id^='edit-title']"))
+    gradovi = []
+    for grad in izbornik.options:
+        gradovi.append(grad.text)
+
+    # gradovi = ["Zagreb", "Split", "Pula", "Zadar", "Dubrovnik"]
     date = datetime.datetime.now()
     if not os.path.exists(f"data/{date.year}/{date.month}"):
         os.makedirs(f"data/{date.year}/{date.month}")
