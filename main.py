@@ -26,7 +26,8 @@ def setup_db():
             city TEXT NOT NULL,
             plant TEXT NOT NULL,
             pollen_concentration TEXT NOT NULL,
-            date DATE NOT NULL
+            date DATE NOT NULL,
+            UNIQUE(city, plant, date)
         )
     ''')
     conn.commit()
@@ -36,7 +37,7 @@ def insert_into_db(conn, city, plant, pollen_concentration, date):
     """Insert pollen data into the database."""
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO pollen_data (city, plant, pollen_concentration, date)
+        INSERT OR IGNORE INTO pollen_data (city, plant, pollen_concentration, date)
         VALUES (?, ?, ?, ?)
     ''', (city, plant, pollen_concentration, date))
     conn.commit()
