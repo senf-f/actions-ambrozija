@@ -5,6 +5,7 @@ from time import perf_counter
 
 from src import db_handler, scraper
 from src.config import DATA_DIR
+print(f"[DEBUG] DATA_DIR path: {DATA_DIR}")
 
 
 def save_to_csv(city, plant, pollen_data):
