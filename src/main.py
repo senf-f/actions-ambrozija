@@ -10,12 +10,19 @@ print(f"[DEBUG] DATA_DIR path: {DATA_DIR}")
 
 def save_to_csv(city, plant, pollen_data):
     """Write pollen data to a CSV file."""
-    os.makedirs(DATA_DIR, exist_ok=True)
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+    print(f"[DEBUG] Confirmed DATA_DIR exists: {DATA_DIR}")
     file_path = os.path.join(DATA_DIR,
                              f"{city} - {plant} pelud za {datetime.datetime.now().month}.{datetime.datetime.now().year}.csv")
     print(f"[DEBUG] Saving data to {file_path}")
 
-    with open(file_path, "a", newline='') as f:
+    if not os.access(DATA_DIR, os.W_OK):
+        print(f"[ERROR] No write permissions for directory: {DATA_DIR}")
+    else:
+        print(f"[DEBUG] Write permissions confirmed for directory: {DATA_DIR}")
+
+    with open(file_path, "a", newline='', encoding="utf-8") as f:
         writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
         writer.writerow([f"{pollen_data} {datetime.datetime.today()}"])
     print("[INFO] Rows saved to csv.")
