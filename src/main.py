@@ -12,6 +12,8 @@ def save_to_csv(city, plant, pollen_data):
     os.makedirs(DATA_DIR, exist_ok=True)
     file_path = os.path.join(DATA_DIR,
                              f"{city} - {plant} pelud za {datetime.datetime.now().month}.{datetime.datetime.now().year}.csv")
+    print(f"[DEBUG] Saving data to {file_path}")
+
     with open(file_path, "a", newline='') as f:
         writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
         writer.writerow([f"{pollen_data} {datetime.datetime.today()}"])
