@@ -15,6 +15,7 @@ def save_to_csv(city, plant, pollen_data):
     with open(file_path, "a", newline='') as f:
         writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
         writer.writerow([f"{pollen_data} {datetime.datetime.today()}"])
+    print("[INFO] Rows saved to csv.")
 
 
 def main():

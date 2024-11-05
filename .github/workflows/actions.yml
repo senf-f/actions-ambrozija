@@ -13,6 +13,9 @@ jobs:
       - name: checkout repo content
         uses: actions/checkout@v2 # checkout the repository content to github runner
 
+      - name: Check directory structure
+        run: ls -R
+
       - name: setup python
         uses: actions/setup-python@v4
         with:
@@ -24,7 +27,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: execute py script # run main.py
-        env: 
+        env:
+          PYTHONPATH: .
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TELEGRAM_API_TOKEN_STAMPAR: ${{ secrets.TELEGRAM_API_TOKEN_STAMPAR }}
         run: python /src/main.py
