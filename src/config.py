@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 # URL and paths
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_URL = "https://stampar.hr/hr/peludna-prognoza"
 DATE = datetime.now()
 DATA_DIR = os.path.join(BASE_DIR, "data", str(DATE.year), str(DATE.month))
