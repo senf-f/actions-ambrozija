@@ -37,6 +37,7 @@ def main():
 
     scraper.close_driver(driver)
     conn.close()
+
     print(f"Execution time: {perf_counter() - start} seconds.")
 
 
