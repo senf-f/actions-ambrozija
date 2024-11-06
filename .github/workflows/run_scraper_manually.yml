@@ -8,12 +8,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: prod
     env:
-      BASE_DIR: ${{ github.workspace }}/actions-ambrozija  # Point to the nested directory directly
+      BASE_DIR: ${{ github.workspace }}/actions-ambrozija
       PYTHONPATH: .
 
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          path: actions-ambrozija
 
       - name: Print working directory and directory structure
         run: |
