@@ -3,6 +3,9 @@ from datetime import datetime
 
 # Set BASE_DIR to use the environment variable directly, or fall back to local calculation
 BASE_DIR = os.getenv("BASE_DIR", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+print(f"[DEBUG] {os.path.dirname(os.path.dirname(os.path.abspath(__file__)))=}")
+print(f"[DEBUG] {os.path.dirname(os.path.abspath(__file__))=}")
+print(f"[DEBUG] {os.path.abspath(__file__)=}")
 print(f"[DEBUG] {BASE_DIR=}")
 
 # Define paths based on BASE_DIR
