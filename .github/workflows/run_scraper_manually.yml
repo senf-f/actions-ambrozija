@@ -17,8 +17,9 @@ jobs:
 
       - name: Create symlink for simpler path access
         run: |
-          # Remove the extra <repo> directory and create a symlink instead
-          ln -sfn ${{ github.workspace }} /home/runner/work/${{ github.event.repository.name }}
+          # Remove the extra <repo> directory if it exists, then create a symlink
+          rm -rf /home/runner/work/actions-ambrozija  # Remove the existing directory
+          ln -s /home/runner/work/actions-ambrozija/actions-ambrozija /home/runner/work/actions-ambrozija
 
       - name: Print working directory and directory structure
         run: |
