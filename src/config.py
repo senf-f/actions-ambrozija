@@ -1,8 +1,8 @@
 import os
 from datetime import datetime
 
-# Use GITHUB_WORKSPACE if available (in GitHub Actions), else fall back to local logic
-BASE_DIR = os.getenv("GITHUB_WORKSPACE", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Set BASE_DIR to use the environment variable directly, or fall back to local calculation
+BASE_DIR = os.getenv("BASE_DIR", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Define paths based on BASE_DIR
 BASE_URL = "https://stampar.hr/hr/peludna-prognoza"

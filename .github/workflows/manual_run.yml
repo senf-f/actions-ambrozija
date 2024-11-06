@@ -13,9 +13,11 @@ on:
         required: true
 
 jobs:
-  build:
+  scrape:
     runs-on: ubuntu-latest
     environment: prod
+    env:
+      BASE_DIR: ${{ github.workspace }}
     steps:
 
       - name: checkout repo content
