@@ -1,0 +1,56 @@
+name: Manually Run Scraper
+
+on:
+  workflow_dispatch:  # Allows manual triggering without additional inputs
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      BASE_DIR: ${{ github.workspace }}
+      PYTHONPATH: .
+
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v2
+
+      - name: Print working directory and directory structure
+        run: |
+          echo "Working Directory:"
+          pwd
+          echo "Project Directory Structure:"
+          ls -R
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute Python script
+        env:
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_API_TOKEN_STAMPAR: ${{ secrets.TELEGRAM_API_TOKEN_STAMPAR }}
+        run: python src/main.py
+
+      - name: Check for generated files
+        run: ls -R data logs  # Check that data and logs directories contain new files
+
+      - name: Commit and push generated files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git pull
+          git add -A
+          git commit -m "Updated logs and data files" || echo "No changes to commit"
+      
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
