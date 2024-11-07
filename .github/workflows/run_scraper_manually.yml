@@ -36,16 +36,18 @@ jobs:
           TELEGRAM_API_TOKEN_STAMPAR: ${{ secrets.TELEGRAM_API_TOKEN_STAMPAR }}
         run: python src/main.py
 
-      - name: Commit and push generated files
+      - name: Commit and push generated CSV files
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git pull
-          git add -A
-          git diff-index --quiet HEAD || (git commit -a -m "updated data" --allow-empty)
+          git add data/
+          git commit -m "Add generated CSV files" || echo "No changes to commit"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Push changes
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
+      # - name: Push changes
+      #   uses: ad-m/github-push-action@v0.6.0
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     branch: main
