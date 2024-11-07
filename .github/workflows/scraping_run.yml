@@ -1,0 +1,48 @@
+name: run main.py
+
+on:
+  schedule:
+    - cron: '30 10 * * *'  # every day at 10:30
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      BASE_DIR: ${{ github.workspace }}
+      PYTHONPATH: .
+
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v3
+
+      - name: Print working directory 
+        run: |
+          echo "Working Directory:"
+          pwd
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute Python script
+        env:
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_API_TOKEN_STAMPAR: ${{ secrets.TELEGRAM_API_TOKEN_STAMPAR }}
+        run: python src/main.py
+
+      - name: Commit and push generated CSV files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -f data/  # Force add files in the ignored data/ directory
+          git commit -m "Add generated CSV files" || echo "No changes to commit"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
