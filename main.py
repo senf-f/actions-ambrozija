@@ -55,7 +55,7 @@ def main():
     driver.get(url)
 
     # Initialize database connection
-    conn = setup_db()
+    # conn = setup_db()
 
     izbornik = Select(driver.find_element(By.CSS_SELECTOR, "select[id^='edit-title']"))
 
@@ -101,7 +101,7 @@ def main():
                     writer.writerow([f"{pelud} {date.today()}"])
 
                 # Write to DB
-                insert_into_db(conn, grad, biljka.value, pelud, date)
+                # insert_into_db(conn, grad, biljka.value, pelud, date)
 
 
     # pretvara listu lista u obicnu listu:
