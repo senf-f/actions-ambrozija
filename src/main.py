@@ -4,6 +4,7 @@ import os
 from time import perf_counter
 
 from src import db_handler, scraper
+from src.biljke import BILJKA_LOOKUP
 from src.config import DATA_DIR
 print(f"[DEBUG] DATA_DIR path: {DATA_DIR}")
 
@@ -13,6 +14,10 @@ def save_to_csv(city, plant, pollen_data):
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
     print(f"[DEBUG] Confirmed DATA_DIR exists: {DATA_DIR}")
+
+    enum_biljke = BILJKA_LOOKUP.get(plant, None)
+    if enum_biljke:
+        plant = enum_biljke
     file_path = os.path.join(DATA_DIR,
                              f"{city} - {plant} pelud za {datetime.datetime.now().month}.{datetime.datetime.now().year}.csv")
     print(f"[DEBUG] Saving data to {file_path}")
@@ -22,8 +27,15 @@ def save_to_csv(city, plant, pollen_data):
     else:
         print(f"[DEBUG] Write permissions confirmed for directory: {DATA_DIR}")
 
+    file_exists = os.path.isfile(file_path)
     with open(file_path, "a", newline='', encoding="utf-8") as f:
         writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
+
+        # Write header if the file is being created
+        if not file_exists:
+            writer.writerow([f"{pollen_data} {datetime.datetime.today()}"])
+            print("[DEBUG] Header written to new CSV file.")
+
         writer.writerow([f"{pollen_data} {datetime.datetime.today()}"])
     print("[INFO] Rows saved to csv.")
 

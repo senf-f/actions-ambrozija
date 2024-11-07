@@ -28,3 +28,6 @@ class Biljka(enum.Enum):
     BREZA = "Breza (Betula sp.)"
     PLATANA = "Platana (Platanus sp.)"
     ORAH = "Orah (Juglans sp.)"
+
+# Reverse lookup dictionary to map value to name
+BILJKA_LOOKUP = {member.value: member.name for member in Biljka}
