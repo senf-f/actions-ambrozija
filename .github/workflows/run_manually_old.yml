@@ -1,4 +1,4 @@
-name: Run Scraper Manually
+name: Run Old Scraper Manually
 
 on:
   workflow_dispatch:  # Allows manual triggering without additional inputs
