@@ -42,7 +42,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -f data/  # Force add files in the ignored data/ directory
-          git commit -m "Add generated CSV files" || echo "No changes to commit"
+          git commit -m "old scraper: added data" || echo "No changes to commit"
           git push origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
