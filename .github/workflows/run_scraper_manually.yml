@@ -36,6 +36,9 @@ jobs:
           TELEGRAM_API_TOKEN_STAMPAR: ${{ secrets.TELEGRAM_API_TOKEN_STAMPAR }}
         run: python src/main.py
 
+      - name: List files in the repository
+        run: ls -R
+        
       - name: Commit and push generated CSV files
         run: |
           git config --local user.email "action@github.com"
