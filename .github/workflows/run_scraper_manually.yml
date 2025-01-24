@@ -38,6 +38,9 @@ jobs:
 
       - name: List files in the data directory
         run: ls -R data/2025/
+
+      - name: Debug git status
+        run: git status
         
       - name: Commit and push generated CSV files
         run: |
