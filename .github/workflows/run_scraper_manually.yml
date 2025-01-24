@@ -38,6 +38,9 @@ jobs:
 
       - name: List files in the repository
         run: ls -R
+
+      - name: List files in the data directory
+        run: ls -R data/
         
       - name: Commit and push generated CSV files
         run: |
