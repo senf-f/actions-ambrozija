@@ -36,11 +36,8 @@ jobs:
           TELEGRAM_API_TOKEN_STAMPAR: ${{ secrets.TELEGRAM_API_TOKEN_STAMPAR }}
         run: python src/main.py
 
-      - name: List files in the repository
-        run: ls -R
-
       - name: List files in the data directory
-        run: ls -R data/
+        run: ls -R data/2025/
         
       - name: Commit and push generated CSV files
         run: |
