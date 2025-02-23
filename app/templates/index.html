@@ -7,6 +7,33 @@
 </head>
 <body>
     <h1>Pollen Data per Month and City</h1>
+    <form method="GET" action="/">
+        <label for="city">City:</label>
+        <select name="city" id="city">
+            <option value="">All Cities</option>
+            {% for city in cities %}
+            <option value="{{ city }}" {% if city == selected_city %}selected{% endif %}>{{ city }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="plant">Plant:</label>
+        <select name="plant" id="plant">
+            <option value="">All Plants</option>
+            {% for plant in plants %}
+            <option value="{{ plant }}" {% if plant == selected_plant %}selected{% endif %}>{{ plant }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="month">Month:</label>
+        <select name="month" id="month">
+            <option value="">All Months</option>
+            {% for month in months %}
+            <option value="{{ month }}" {% if month == selected_month %}selected{% endif %}>{{ month }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Filter</button>
+    </form>
     <table border="1">
         <thead>
             <tr>
