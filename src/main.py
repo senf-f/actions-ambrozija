@@ -24,6 +24,7 @@ def save_to_csv(city, plant, pollen_data):
     if enum_biljke:
         plant = enum_biljke
 
+    # todo ukloni csv nastavak
     file_path = os.path.join(
         dir_path,
         f"{city} - {plant} pelud za {now.month}.{now.year}.csv"
@@ -41,12 +42,12 @@ def save_to_csv(city, plant, pollen_data):
 
             # Write header if the file is being created
             if not file_exists:
-                writer.writerow(["city", "plant", "pollen_concentration", "timestamp"])
+                writer.writerow(["pollen_concentration", "timestamp"])
                 print("[DEBUG] Header written to new CSV file.")
 
             # Write a single data row
             timestamp = now.isoformat()
-            writer.writerow([city, str(plant), pollen_data, timestamp])
+            writer.writerow([pollen_data, timestamp])
         print(f"[WARNING] Row saved to CSV at {file_path}. Local or remote execution makes a difference!")
     except Exception as e:
         print(f"[ERROR] Failed to write to CSV file: {e}")
