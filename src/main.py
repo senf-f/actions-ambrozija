@@ -37,14 +37,16 @@ def save_to_csv(city, plant, pollen_data):
     file_exists = os.path.isfile(file_path)
     try:
         with open(file_path, "a", newline='', encoding="utf-8") as f:
-            writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
+            writer = csv.writer(f)
 
-            # Write header if the file is being created (preserve existing behavior)
+            # Write header if the file is being created
             if not file_exists:
-                writer.writerow([f"{pollen_data} {datetime.datetime.today()}"])
+                writer.writerow(["city", "plant", "pollen_concentration", "timestamp"])
                 print("[DEBUG] Header written to new CSV file.")
 
-            writer.writerow([f"{pollen_data} {datetime.datetime.today()}"])
+            # Write a single data row
+            timestamp = now.isoformat()
+            writer.writerow([city, str(plant), pollen_data, timestamp])
         print(f"[WARNING] Row saved to CSV at {file_path}. Local or remote execution makes a difference!")
     except Exception as e:
         print(f"[ERROR] Failed to write to CSV file: {e}")
