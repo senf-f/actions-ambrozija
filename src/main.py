@@ -9,27 +9,37 @@ from src.config import DATA_DIR
 
 
 def save_to_csv(city, plant, pollen_data):
-    """Write pollen data to a CSV file."""
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
+    """Write pollen data to a CSV file.
+
+    CSV files are written into the same directory structure used by the top-level
+    main.py: data/{year}/{month}/
+    """
+    now = datetime.datetime.now()
+    # Use the same per-year/per-month directory layout as main.py
+    dir_path = os.path.join("data", str(now.year), str(now.month))
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
 
     enum_biljke = BILJKA_LOOKUP.get(plant, None)
     if enum_biljke:
         plant = enum_biljke
-    file_path = os.path.join(DATA_DIR,
-                             f"{city} - {plant} pelud za {datetime.datetime.now().month}.{datetime.datetime.now().year}.csv")
 
-    if not os.access(DATA_DIR, os.W_OK):
-        print(f"[ERROR] No write permissions for directory: {DATA_DIR}")
+    file_path = os.path.join(
+        dir_path,
+        f"{city} - {plant} pelud za {now.month}.{now.year}.csv"
+    )
+
+    if not os.access(dir_path, os.W_OK):
+        print(f"[ERROR] No write permissions for directory: {dir_path}")
     else:
-        print(f"[DEBUG] Write permissions confirmed for directory: {DATA_DIR}")
+        print(f"[DEBUG] Write permissions confirmed for directory: {dir_path}")
 
     file_exists = os.path.isfile(file_path)
     try:
         with open(file_path, "a", newline='', encoding="utf-8") as f:
             writer = csv.writer(f, escapechar=" ", quoting=csv.QUOTE_NONE)
 
-            # Write header if the file is being created
+            # Write header if the file is being created (preserve existing behavior)
             if not file_exists:
                 writer.writerow([f"{pollen_data} {datetime.datetime.today()}"])
                 print("[DEBUG] Header written to new CSV file.")
