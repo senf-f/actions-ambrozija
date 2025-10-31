@@ -47,7 +47,7 @@ def save_to_csv(city, plant, pollen_data):
 
             # Write a single data row
             timestamp = now.isoformat()
-            writer.writerow([pollen_data, timestamp])
+            writer.writerow([f"{pollen_data} {now.today()}"])
         print(f"[WARNING] Row saved to CSV at {file_path}. Local or remote execution makes a difference!")
     except Exception as e:
         print(f"[ERROR] Failed to write to CSV file: {e}")
