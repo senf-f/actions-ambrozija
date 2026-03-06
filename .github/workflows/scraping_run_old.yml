@@ -2,8 +2,7 @@
 name: run main.py (old)
 
 on:
-  schedule:
-    - cron: '30 9 * * *'  # every day at 9:30 UTC
+  workflow_dispatch:
 
 jobs:
   scrape:
