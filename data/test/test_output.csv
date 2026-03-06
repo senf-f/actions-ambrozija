@@ -1,0 +1,37 @@
+city,plant,pollen_concentration,timestamp
+Dubrovnik,Čempresi (Cupressaceae),7.0,2026-03-06 17:43:45
+Dubrovnik,Jasen (Fraxinus sp.),4.2,2026-03-06 17:43:45
+Dubrovnik,Bor (Pinus sp.),1.3,2026-03-06 17:43:45
+Dubrovnik,Lijeska (Corylus sp.),0.9,2026-03-06 17:43:45
+Dubrovnik,Joha (Alnus sp.),0.3,2026-03-06 17:43:45
+Dubrovnik,Crkvina (Parietaria sp.),0.2,2026-03-06 17:43:45
+Osijek,Čempresi (Cupressaceae),6.8,2026-03-06 17:43:45
+Osijek,Joha (Alnus sp.),6.0,2026-03-06 17:43:45
+Osijek,Topola (Populus sp.),3.0,2026-03-06 17:43:45
+Pula,Čempresi (Cupressaceae),9.0,2026-03-06 17:43:45
+Pula,Vrba (Salix sp.),1.9,2026-03-06 17:43:45
+Pula,Lijeska (Corylus sp.),1.5,2026-03-06 17:43:45
+Split,Čempresi (Cupressaceae),11.7,2026-03-06 17:43:45
+Split,Jasen (Fraxinus sp.),5.8,2026-03-06 17:43:45
+Split,Brijest (Ulmus sp.),2.3,2026-03-06 17:43:45
+Split,Bor (Pinus sp.),1.3,2026-03-06 17:43:45
+Split,Crkvina (Parietaria sp.),1.1,2026-03-06 17:43:45
+Split,Joha (Alnus sp.),0.4,2026-03-06 17:43:45
+Virovitica,Joha (Alnus sp.),6.9,2026-03-06 17:43:45
+Virovitica,Jasen (Fraxinus sp.),6.2,2026-03-06 17:43:45
+Virovitica,Topola (Populus sp.),6.1,2026-03-06 17:43:45
+Virovitica,Čempresi (Cupressaceae),3.8,2026-03-06 17:43:45
+Virovitica,Lijeska (Corylus sp.),3.6,2026-03-06 17:43:45
+Virovitica,Vrba (Salix sp.),3.3,2026-03-06 17:43:45
+Zadar,Jasen (Fraxinus sp.),5.8,2026-03-06 17:43:45
+Zadar,Čempresi (Cupressaceae),4.6,2026-03-06 17:43:45
+Zadar,Lijeska (Corylus sp.),1.1,2026-03-06 17:43:45
+Zadar,Koprive (Urticaceae),1.1,2026-03-06 17:43:45
+Zadar,Joha (Alnus sp.),0.6,2026-03-06 17:43:45
+Zadar,Topola (Populus sp.),0.6,2026-03-06 17:43:45
+Zagreb,Čempresi (Cupressaceae),8.6,2026-03-06 17:43:45
+Zagreb,Topola (Populus sp.),6.9,2026-03-06 17:43:45
+Zagreb,Joha (Alnus sp.),6.0,2026-03-06 17:43:45
+Zagreb,Lijeska (Corylus sp.),3.3,2026-03-06 17:43:45
+Zagreb,Jasen (Fraxinus sp.),2.8,2026-03-06 17:43:45
+Zagreb,Vrba (Salix sp.),2.4,2026-03-06 17:43:45
