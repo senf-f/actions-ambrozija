@@ -16,7 +16,7 @@ def main():
     cities = scraper.get_cities(driver)
     now = datetime.datetime.now()
 
-    file_path = os.path.join(BASE_DIR, "data", "test_output.csv")
+    file_path = os.path.join(BASE_DIR, "data", "test", "test_output.csv")
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     with open(file_path, "w", newline="", encoding="utf-8") as f:

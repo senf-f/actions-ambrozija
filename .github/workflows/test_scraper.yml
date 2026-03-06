@@ -29,10 +29,14 @@ jobs:
         run: python src/test_scraper.py
 
       - name: Show test output
-        run: cat data/test_output.csv
+        run: cat data/test/test_output.csv
 
-      - name: Upload test CSV as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-output
-          path: data/test_output.csv
+      - name: Commit and push test CSV
+        run: |
+          git config --local user.email "mate.mrse@gmail.com"
+          git config --local user.name "GitHub Action"
+          git add -f data/test/
+          git commit -m "test scraper: updated test data" || echo "No changes to commit"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
