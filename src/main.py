@@ -5,17 +5,13 @@ from time import perf_counter
 
 from src import db_handler, scraper
 from src.biljke import BILJKA_LOOKUP
+from src.config import BASE_DIR
 
 
 def save_to_csv(city, plant, pollen_data):
-    """Write pollen data to a CSV file.
-
-    CSV files are written into the same directory structure used by the top-level
-    main.py: data/{year}/{month}/
-    """
+    """Write pollen data to a CSV file."""
     now = datetime.datetime.now()
-    # Use the same per-year/per-month directory layout as main.py
-    dir_path = os.path.join("data", str(now.year), str(now.month))
+    dir_path = os.path.join(BASE_DIR, "data", str(now.year), str(now.month))
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
@@ -33,9 +29,9 @@ def save_to_csv(city, plant, pollen_data):
         writer = csv.writer(f)
 
         if not file_exists:
-            writer.writerow(["pollen_concentration", "date"])
+            writer.writerow(["pollen_concentration", "timestamp"])
 
-        writer.writerow([pollen_data, now.strftime("%Y-%m-%d")])
+        writer.writerow([pollen_data, now.strftime("%Y-%m-%d %H:%M:%S")])
 
 
 def main():

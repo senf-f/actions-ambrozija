@@ -1,3 +1,4 @@
+# DEPRECATED: Use src/main.py instead. This scraper is kept for reference only.
 import csv
 import datetime
 import os

@@ -163,4 +163,6 @@ cython_debug/
 # My specific additions
 creds.py
 .idea/
+.claude/
+data/
 pollen_data.db

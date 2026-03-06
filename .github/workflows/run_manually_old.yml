@@ -1,3 +1,4 @@
+# DEPRECATED: Use run_scraper_manually.yml instead.
 name: Run Old Scraper Manually
 
 on:

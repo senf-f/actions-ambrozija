@@ -1,3 +1,4 @@
+# DEPRECATED: Use scraping_run.yml instead.
 name: run main.py (old)
 
 on:

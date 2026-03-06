@@ -55,6 +55,7 @@ def get_pollen_data(driver, city):
                 mjerenja = sekcija.find_elements(By.XPATH,
                                                  ".//div[contains(@class, 'field-field-vrijednost')]/div[contains(@class, 'field-item')]")
                 for mjerenje in mjerenja:
-                    if "." in mjerenje.text:
-                        pollen_data[ime_biljke] = mjerenje.text
+                    text = mjerenje.text.strip()
+                    if text and text.replace(".", "", 1).isdigit():
+                        pollen_data[ime_biljke] = text
     return pollen_data
