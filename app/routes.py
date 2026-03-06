@@ -1,12 +1,14 @@
+import sqlite3
+
 from flask import render_template, request
 
 from app import app
-from src.db_handler import setup_db
+from src.config import DB_PATH
 
 
 @app.route('/')
 def index():
-    conn = setup_db()
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     # Fetch unique cities, plants, and months for the dropdowns

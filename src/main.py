@@ -5,7 +5,6 @@ from time import perf_counter
 
 from src import db_handler, scraper
 from src.biljke import BILJKA_LOOKUP
-from src.config import DATA_DIR
 
 
 def save_to_csv(city, plant, pollen_data):
@@ -24,35 +23,19 @@ def save_to_csv(city, plant, pollen_data):
     if enum_biljke:
         plant = enum_biljke
 
-    # todo ukloni csv nastavak
     file_path = os.path.join(
         dir_path,
         f"{city} - {plant} pelud za {now.month}.{now.year}.csv"
     )
 
-    if not os.access(dir_path, os.W_OK):
-        print(f"[ERROR] No write permissions for directory: {dir_path}")
-    else:
-        print(f"[DEBUG] Write permissions confirmed for directory: {dir_path}")
-
     file_exists = os.path.isfile(file_path)
-    try:
-        with open(file_path, "a", newline='', encoding="utf-8") as f:
-            writer = csv.writer(f)
+    with open(file_path, "a", newline='', encoding="utf-8") as f:
+        writer = csv.writer(f)
 
-            # Write header if the file is being created
-            if not file_exists:
-                writer.writerow(["pollen_concentration", "timestamp"])
-                print("[DEBUG] Header written to new CSV file.")
+        if not file_exists:
+            writer.writerow(["pollen_concentration", "date"])
 
-            # Write a single data row
-            timestamp = now.isoformat()
-            writer.writerow([f"{pollen_data} {now.today()}"])
-        print(f"[WARNING] Row saved to CSV at {file_path}. Local or remote execution makes a difference!")
-    except Exception as e:
-        print(f"[ERROR] Failed to write to CSV file: {e}")
-
-    print(f"[INFO] Rows saved to CSV. {file_path}")
+        writer.writerow([pollen_data, now.strftime("%Y-%m-%d")])
 
 
 def main():
