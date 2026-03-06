@@ -1,0 +1,38 @@
+name: Test Scraper
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      BASE_DIR: ${{ github.workspace }}
+      PYTHONPATH: .
+
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run test scraper
+        run: python src/test_scraper.py
+
+      - name: Show test output
+        run: cat data/test_output.csv
+
+      - name: Upload test CSV as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output
+          path: data/test_output.csv
