@@ -44,7 +44,7 @@ jobs:
         run: |
           git config --local user.email "mate.mrse@gmail.com"
           git config --local user.name "GitHub Action"
-          git add -f data/  # Force add files in the ignored data/ directory
+          git add -f data/ db/
           git commit -m "new scraper: updated data" || echo "No changes to commit"
           git push origin main
         env:

@@ -30,7 +30,7 @@ def insert_into_db(conn, city, plant, pollen_concentration, date):
     """Insert pollen data into the database, avoiding duplicates."""
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT OR IGNORE INTO pollen_data (city, plant, pollen_concentration, date)
+        INSERT OR REPLACE INTO pollen_data (city, plant, pollen_concentration, date)
         VALUES (?, ?, ?, ?)
     ''', (city, plant, pollen_concentration, date))
     conn.commit()
