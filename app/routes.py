@@ -1,6 +1,7 @@
 import sqlite3
+from datetime import datetime
 
-from flask import render_template, request
+from flask import jsonify, render_template, request
 
 from app import app
 from src.config import DB_PATH
@@ -49,3 +50,13 @@ def index():
     conn.close()
     return render_template('index.html', data=data, cities=cities, plants=plants, months=months,
                            selected_city=selected_city, selected_plant=selected_plant, selected_month=selected_month)
+
+
+@app.route('/graph')
+def graph():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('SELECT DISTINCT city FROM pollen_data ORDER BY city ASC')
+    cities = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return render_template('graph.html', cities=cities)

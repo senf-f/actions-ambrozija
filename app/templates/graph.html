@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Pollen Graph</title></head>
+<body>
+<h1>Pollen Graph</h1>
+<select id="city-select">
+  {% for city in cities %}
+  <option value="{{ city }}" {% if loop.first %}selected{% endif %}>{{ city }}</option>
+  {% endfor %}
+</select>
+</body>
+</html>
