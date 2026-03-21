@@ -1,12 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><title>Pollen Graph</title></head>
+<head>
+  <meta charset="UTF-8">
+  <title>Pollen Graph</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
 <body>
-<h1>Pollen Graph</h1>
-<select id="city-select">
-  {% for city in cities %}
-  <option value="{{ city }}" {% if loop.first %}selected{% endif %}>{{ city }}</option>
-  {% endfor %}
-</select>
+  <h1>Pollen Concentration Graph</h1>
+  <p><a href="/">Table view</a></p>
+
+  <form id="filter-form">
+    <label for="city-select">City:</label>
+    <select id="city-select">
+      {% for city in cities %}
+      <option value="{{ city }}" {% if loop.first %}selected{% endif %}>{{ city }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="date-from">From:</label>
+    <input type="date" id="date-from">
+
+    <label for="date-to">To:</label>
+    <input type="date" id="date-to">
+
+    <button type="button" id="apply-btn">Apply</button>
+  </form>
+
+  <p id="error-msg" style="display:none;color:red"></p>
+  <p id="no-data-msg" style="display:none">No data for this selection.</p>
+  <canvas id="pollen-chart" style="display:none"></canvas>
+
+  <script>
+    const PALETTE = [
+      '#2563eb','#16a34a','#dc2626','#d97706','#7c3aed',
+      '#0891b2','#be185d','#92400e','#065f46','#1e3a5f'
+    ];
+
+    let chart = null;
+
+    function formatDate(d) {
+      return d.toISOString().slice(0, 10);
+    }
+
+    async function fetchAndRender() {
+      const errorMsg = document.getElementById('error-msg');
+      const noDataMsg = document.getElementById('no-data-msg');
+      const canvas = document.getElementById('pollen-chart');
+
+      try {
+        const city = document.getElementById('city-select').value;
+        if (!city) {
+          errorMsg.textContent = 'No cities available';
+          errorMsg.style.display = '';
+          return;
+        }
+
+        const dateFrom = document.getElementById('date-from').value;
+        const dateTo = document.getElementById('date-to').value;
+
+        if (dateFrom > dateTo) {
+          errorMsg.textContent = 'Start date must not be after end date';
+          errorMsg.style.display = '';
+          return;
+        }
+
+        errorMsg.style.display = 'none';
+
+        const url = `/api/graph-data?city=${encodeURIComponent(city)}&date_from=${dateFrom}&date_to=${dateTo}`;
+        const resp = await fetch(url);
+
+        if (!resp.ok) {
+          let msg = 'Request failed';
+          try { msg = (await resp.json()).error || msg; } catch (_) {}
+          errorMsg.textContent = msg;
+          errorMsg.style.display = '';
+          canvas.style.display = 'none';
+          noDataMsg.style.display = 'none';
+          return;
+        }
+
+        const rows = await resp.json();
+
+        if (rows.length === 0) {
+          if (chart) { chart.destroy(); chart = null; }
+          canvas.style.display = 'none';
+          noDataMsg.style.display = '';
+          return;
+        }
+
+        noDataMsg.style.display = 'none';
+        errorMsg.style.display = 'none';
+        canvas.style.display = '';
+
+        // Group by plant
+        const byPlant = {};
+        for (const row of rows) {
+          if (!byPlant[row.plant]) byPlant[row.plant] = {};
+          byPlant[row.plant][row.date] = row.concentration;
+        }
+
+        // Build shared labels (all unique dates, sorted)
+        const labels = [...new Set(rows.map(r => r.date))].sort();
+
+        const datasets = Object.entries(byPlant).map(([plant, dateMap], i) => {
+          const color = PALETTE[i % PALETTE.length];
+          return {
+            label: plant,
+            data: labels.map(d => dateMap[d] ?? null),
+            borderColor: color,
+            backgroundColor: color + '22',
+            tension: 0.3,
+            spanGaps: true,
+            pointRadius: 3
+          };
+        });
+
+        if (chart) chart.destroy();
+        chart = new Chart(canvas, {
+          type: 'line',
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } },
+              tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+              y: { beginAtZero: true, title: { display: true, text: 'Concentration' } },
+              x: { title: { display: true, text: 'Date' } }
+            }
+          }
+        });
+
+      } catch (err) {
+        const errorMsg = document.getElementById('error-msg');
+        errorMsg.textContent = 'Network error';
+        errorMsg.style.display = '';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      document.getElementById('date-from').value = formatDate(firstOfMonth);
+      document.getElementById('date-to').value = formatDate(today);
+
+      document.getElementById('apply-btn').addEventListener('click', () => { fetchAndRender(); });
+
+      fetchAndRender();
+    });
+  </script>
 </body>
 </html>
