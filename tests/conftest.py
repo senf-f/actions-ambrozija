@@ -30,7 +30,7 @@ def client(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def client_with_data(client, tmp_path, monkeypatch):
+def client_with_data(client):
     """Same client but pre-populated with test rows."""
     import app.routes as routes_module
     db_path = routes_module.DB_PATH  # already patched by `client` fixture
