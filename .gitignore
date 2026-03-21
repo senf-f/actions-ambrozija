@@ -165,3 +165,5 @@ creds.py
 .idea/
 .claude/
 data/
+.worktrees/
+.superpowers/
