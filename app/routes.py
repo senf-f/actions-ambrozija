@@ -62,3 +62,50 @@ def graph():
     finally:
         conn.close()
     return render_template('graph.html', cities=cities)
+
+
+@app.route('/api/graph-data')
+def graph_data():
+    city = request.args.get('city', '').strip()
+    if not city:
+        return jsonify({'error': 'city is required'}), 400
+
+    today = datetime.today()
+    first_of_month = today.replace(day=1)
+
+    date_from_str = request.args.get('date_from', '').strip() or first_of_month.strftime('%Y-%m-%d')
+    date_to_str = request.args.get('date_to', '').strip() or today.strftime('%Y-%m-%d')
+
+    try:
+        date_from = datetime.strptime(date_from_str, '%Y-%m-%d')
+        date_to = datetime.strptime(date_to_str, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'error': 'invalid date format, expected YYYY-MM-DD'}), 400
+
+    if date_from > date_to:
+        return jsonify({'error': 'date_from must not be after date_to'}), 400
+
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT plant, date, pollen_concentration FROM pollen_data '
+            'WHERE city = ? AND date BETWEEN ? AND ? ORDER BY date ASC',
+            (city, date_from_str, date_to_str)
+        )
+        rows = cursor.fetchall()
+    finally:
+        conn.close()
+
+    result = []
+    for plant, date, concentration in rows:
+        try:
+            result.append({
+                'plant': plant,
+                'date': date,
+                'concentration': float(concentration)
+            })
+        except ValueError:
+            pass  # skip non-numeric rows
+
+    return jsonify(result)
