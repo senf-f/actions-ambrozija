@@ -131,7 +131,7 @@
             },
             scales: {
               y: { beginAtZero: true, title: { display: true, text: 'Concentration' } },
-              x: { title: { display: true, text: 'Date' }, ticks: { callback: (_, i, vals) => Number(labels[i].slice(8)) } }
+              x: { title: { display: true, text: 'Date' }, ticks: { callback: (value) => Number(labels[value].slice(8)) } }
             }
           }
         });
