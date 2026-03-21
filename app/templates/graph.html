@@ -14,7 +14,7 @@
     <label for="city-select">City:</label>
     <select id="city-select">
       {% for city in cities %}
-      <option value="{{ city }}" {% if loop.first %}selected{% endif %}>{{ city }}</option>
+      <option value="{{ city }}" {% if city == 'Zagreb' or (loop.first and 'Zagreb' not in cities) %}selected{% endif %}>{{ city }}</option>
       {% endfor %}
     </select>
 
