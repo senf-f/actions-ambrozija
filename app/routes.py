@@ -55,8 +55,10 @@ def index():
 @app.route('/graph')
 def graph():
     conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('SELECT DISTINCT city FROM pollen_data ORDER BY city ASC')
-    cities = [row[0] for row in cursor.fetchall()]
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT DISTINCT city FROM pollen_data ORDER BY city ASC')
+        cities = [row[0] for row in cursor.fetchall()]
+    finally:
+        conn.close()
     return render_template('graph.html', cities=cities)
