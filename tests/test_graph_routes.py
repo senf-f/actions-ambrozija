@@ -87,6 +87,7 @@ class TestGraphDataApi:
             "/api/graph-data?city=Split&date_from=2026-03-01&date_to=2026-03-31"
         )
         rows = resp.get_json()
+        assert len(rows) == 1
         assert all(r["plant"] == "Maslina (Olea sp.)" for r in rows)
 
     def test_ordered_by_date_asc(self, client_with_data):
@@ -101,3 +102,4 @@ class TestGraphDataApi:
         """When date params are omitted, server fills defaults and returns 200."""
         resp = client_with_data.get("/api/graph-data?city=Zagreb")
         assert resp.status_code == 200
+        assert isinstance(resp.get_json(), list)
