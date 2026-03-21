@@ -103,14 +103,15 @@
           byPlant[row.plant][row.date] = row.concentration;
         }
 
-        // Build shared labels (all unique dates, sorted)
-        const labels = [...new Set(rows.map(r => r.date))].sort();
+        // Build shared date list (sorted) and day-of-month labels for display
+        const dates = [...new Set(rows.map(r => r.date))].sort();
+        const labels = dates.map(d => Number(d.slice(8)));
 
         const datasets = Object.entries(byPlant).map(([plant, dateMap], i) => {
           const color = PALETTE[i % PALETTE.length];
           return {
             label: plant,
-            data: labels.map(d => dateMap[d] ?? null),
+            data: dates.map(d => dateMap[d] ?? null),
             borderColor: color,
             backgroundColor: color + '22',
             tension: 0.3,
@@ -131,7 +132,7 @@
             },
             scales: {
               y: { beginAtZero: true, title: { display: true, text: 'Concentration' } },
-              x: { title: { display: true, text: 'Date' }, ticks: { callback: (value) => Number(labels[value].slice(8)) } }
+              x: { title: { display: true, text: 'Date' } }
             }
           }
         });
