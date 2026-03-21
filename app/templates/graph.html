@@ -105,7 +105,7 @@
 
         // Build shared date list (sorted) and day-of-month labels for display
         const dates = [...new Set(rows.map(r => r.date))].sort();
-        const labels = dates.map(d => Number(d.slice(8)));
+        const labels = dates.map(d => String(Number(d.slice(8))));
 
         const datasets = Object.entries(byPlant).map(([plant, dateMap], i) => {
           const color = PALETTE[i % PALETTE.length];
