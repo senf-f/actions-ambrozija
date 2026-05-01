@@ -146,8 +146,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       const today = new Date();
       const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       document.getElementById('date-from').value = formatDate(firstOfMonth);
-      document.getElementById('date-to').value = formatDate(today);
+      document.getElementById('date-to').value = formatDate(lastOfMonth);
 
       document.getElementById('apply-btn').addEventListener('click', () => { fetchAndRender(); });
 
