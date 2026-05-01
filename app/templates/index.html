@@ -2,58 +2,76 @@
 <html lang="hr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Peludni podaci</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Peludni podaci po mjesecu i gradu</h1>
-    <p><a href="/graph">Graf</a></p>
-    <form method="GET" action="/">
-        <label for="city">Grad:</label>
-        <select name="city" id="city">
+  <div class="container">
+    <div class="header">
+      <h1>Peludni podaci</h1>
+      <p class="subtitle">Koncentracije peludi po mjesecu i gradu</p>
+      <a href="/graph" class="nav-link" data-icon="&#x2937;">Graf</a>
+    </div>
+
+    <div class="filter-card">
+      <form method="GET" action="/">
+        <div class="filter-group">
+          <label for="city">Grad</label>
+          <select name="city" id="city">
             <option value="">Svi gradovi</option>
             {% for city in cities %}
             <option value="{{ city }}" {% if city == selected_city %}selected{% endif %}>{{ city }}</option>
             {% endfor %}
-        </select>
+          </select>
+        </div>
 
-        <label for="plant">Biljka:</label>
-        <select name="plant" id="plant">
+        <div class="filter-group">
+          <label for="plant">Biljka</label>
+          <select name="plant" id="plant">
             <option value="">Sve biljke</option>
             {% for plant in plants %}
             <option value="{{ plant }}" {% if plant == selected_plant %}selected{% endif %}>{{ plant }}</option>
             {% endfor %}
-        </select>
+          </select>
+        </div>
 
-        <label for="month">Mjesec:</label>
-        <select name="month" id="month">
+        <div class="filter-group">
+          <label for="month">Mjesec</label>
+          <select name="month" id="month">
             <option value="">Svi mjeseci</option>
             {% for month in months %}
             <option value="{{ month }}" {% if month == selected_month %}selected{% endif %}>{{ month }}</option>
             {% endfor %}
-        </select>
+          </select>
+        </div>
 
-        <button type="submit">Filtriraj</button>
-    </form>
-    <table border="1">
+        <button type="submit" class="btn">Filtriraj</button>
+      </form>
+    </div>
+
+    <div class="table-card">
+      <table>
         <thead>
-            <tr>
-                <th>Grad</th>
-                <th>Biljka</th>
-                <th>Koncentracija peludi</th>
-                <th>Datum</th>
-            </tr>
+          <tr>
+            <th>Grad</th>
+            <th>Biljka</th>
+            <th>Koncentracija</th>
+            <th>Datum</th>
+          </tr>
         </thead>
         <tbody>
-            {% for row in data %}
-            <tr>
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[2] }}</td>
-                <td>{{ row[3] }}</td>
-            </tr>
-            {% endfor %}
+          {% for row in data %}
+          <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ row[2] }}</td>
+            <td>{{ row[3] }}</td>
+          </tr>
+          {% endfor %}
         </tbody>
-    </table>
+      </table>
+    </div>
+  </div>
 </body>
 </html>

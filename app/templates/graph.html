@@ -2,39 +2,56 @@
 <html lang="hr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Peludni graf</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <h1>Graf koncentracije peludi</h1>
-  <p><a href="/">Tablični prikaz</a></p>
+  <div class="container">
+    <div class="header">
+      <h1>Graf koncentracije peludi</h1>
+      <p class="subtitle">Vizualni prikaz dnevnih mjerenja</p>
+      <a href="/" class="nav-link" data-icon="&#x2937;">Tablični prikaz</a>
+    </div>
 
-  <form id="filter-form">
-    <label for="city-select">Grad:</label>
-    <select id="city-select">
-      {% for city in cities %}
-      <option value="{{ city }}" {% if city == 'Zagreb' or (loop.first and 'Zagreb' not in cities) %}selected{% endif %}>{{ city }}</option>
-      {% endfor %}
-    </select>
+    <div class="filter-card">
+      <form id="filter-form">
+        <div class="filter-group">
+          <label for="city-select">Grad</label>
+          <select id="city-select">
+            {% for city in cities %}
+            <option value="{{ city }}" {% if city == 'Zagreb' or (loop.first and 'Zagreb' not in cities) %}selected{% endif %}>{{ city }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-    <label for="date-from">Od:</label>
-    <input type="date" id="date-from">
+        <div class="filter-group">
+          <label for="date-from">Od</label>
+          <input type="date" id="date-from">
+        </div>
 
-    <label for="date-to">Do:</label>
-    <input type="date" id="date-to">
+        <div class="filter-group">
+          <label for="date-to">Do</label>
+          <input type="date" id="date-to">
+        </div>
 
-    <button type="button" id="apply-btn">Primijeni</button>
-  </form>
+        <button type="button" id="apply-btn" class="btn">Primijeni</button>
+      </form>
+    </div>
 
-  <p id="error-msg" style="display:none;color:red"></p>
-  <p id="no-data-msg" style="display:none">Nema podataka za ovaj odabir.</p>
-  <canvas id="pollen-chart" style="display:none"></canvas>
+    <p id="error-msg" class="error-msg" style="display:none"></p>
+    <p id="no-data-msg" class="no-data-msg" style="display:none">Nema podataka za ovaj odabir.</p>
+
+    <div id="chart-wrapper" class="chart-card" style="display:none">
+      <canvas id="pollen-chart"></canvas>
+    </div>
+  </div>
 
   <script>
     const PALETTE = [
-      '#2563eb','#16a34a','#dc2626','#d97706','#7c3aed',
-      '#0891b2','#be185d','#92400e','#065f46','#1e3a5f'
+      '#2d5a42','#d4a843','#c0392b','#2980b9','#7c3aed',
+      '#0891b2','#be185d','#92400e','#16a34a','#1a3a2a'
     ];
 
     let chart = null;
@@ -49,6 +66,7 @@
     async function fetchAndRender() {
       const errorMsg = document.getElementById('error-msg');
       const noDataMsg = document.getElementById('no-data-msg');
+      const chartWrapper = document.getElementById('chart-wrapper');
       const canvas = document.getElementById('pollen-chart');
 
       try {
@@ -78,7 +96,7 @@
           try { msg = (await resp.json()).error || msg; } catch (_) {}
           errorMsg.textContent = msg;
           errorMsg.style.display = '';
-          canvas.style.display = 'none';
+          chartWrapper.style.display = 'none';
           noDataMsg.style.display = 'none';
           return;
         }
@@ -87,23 +105,21 @@
 
         if (rows.length === 0) {
           if (chart) { chart.destroy(); chart = null; }
-          canvas.style.display = 'none';
+          chartWrapper.style.display = 'none';
           noDataMsg.style.display = '';
           return;
         }
 
         noDataMsg.style.display = 'none';
         errorMsg.style.display = 'none';
-        canvas.style.display = '';
+        chartWrapper.style.display = '';
 
-        // Group by plant
         const byPlant = {};
         for (const row of rows) {
           if (!byPlant[row.plant]) byPlant[row.plant] = {};
           byPlant[row.plant][row.date] = row.concentration;
         }
 
-        // Build shared date list (sorted); use full strings as labels (category scale)
         const dates = [...new Set(rows.map(r => r.date))].sort();
         const labels = dates;
 
@@ -113,10 +129,12 @@
             label: plant,
             data: dates.map(d => dateMap[d] ?? null),
             borderColor: color,
-            backgroundColor: color + '22',
-            tension: 0.3,
+            backgroundColor: color + '18',
+            tension: 0.35,
             spanGaps: true,
-            pointRadius: 3
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2.5
           };
         });
 
@@ -126,13 +144,43 @@
           data: { labels, datasets },
           options: {
             responsive: true,
+            interaction: { mode: 'index', intersect: false },
             plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } },
-              tooltip: { mode: 'index', intersect: false }
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 14,
+                  padding: 20,
+                  font: { family: 'Outfit', size: 13 },
+                  usePointStyle: true,
+                  pointStyle: 'circle'
+                }
+              },
+              tooltip: {
+                backgroundColor: '#1a3a2a',
+                titleFont: { family: 'Outfit', weight: '500' },
+                bodyFont: { family: 'Outfit' },
+                cornerRadius: 8,
+                padding: 12
+              }
             },
             scales: {
-              y: { beginAtZero: true, title: { display: true, text: 'Koncentracija' } },
-              x: { type: 'category', title: { display: true, text: 'Datum' }, ticks: { callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10); } } }
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+                grid: { color: 'rgba(0,0,0,0.04)' },
+                ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+              },
+              x: {
+                type: 'category',
+                title: { display: true, text: 'Datum', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+                grid: { display: false },
+                ticks: {
+                  font: { family: 'Outfit', size: 11 },
+                  color: '#6b6b6b',
+                  callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10) + '.'; }
+                }
+              }
             }
           }
         });
