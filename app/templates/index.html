@@ -1,47 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hr">
 <head>
     <meta charset="UTF-8">
-    <title>Pollen Data</title>
+    <title>Peludni podaci</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Pollen Data per Month and City</h1>
-    <p><a href="/graph">Graph</a></p>
+    <h1>Peludni podaci po mjesecu i gradu</h1>
+    <p><a href="/graph">Graf</a></p>
     <form method="GET" action="/">
-        <label for="city">City:</label>
+        <label for="city">Grad:</label>
         <select name="city" id="city">
-            <option value="">All Cities</option>
+            <option value="">Svi gradovi</option>
             {% for city in cities %}
             <option value="{{ city }}" {% if city == selected_city %}selected{% endif %}>{{ city }}</option>
             {% endfor %}
         </select>
 
-        <label for="plant">Plant:</label>
+        <label for="plant">Biljka:</label>
         <select name="plant" id="plant">
-            <option value="">All Plants</option>
+            <option value="">Sve biljke</option>
             {% for plant in plants %}
             <option value="{{ plant }}" {% if plant == selected_plant %}selected{% endif %}>{{ plant }}</option>
             {% endfor %}
         </select>
 
-        <label for="month">Month:</label>
+        <label for="month">Mjesec:</label>
         <select name="month" id="month">
-            <option value="">All Months</option>
+            <option value="">Svi mjeseci</option>
             {% for month in months %}
             <option value="{{ month }}" {% if month == selected_month %}selected{% endif %}>{{ month }}</option>
             {% endfor %}
         </select>
 
-        <button type="submit">Filter</button>
+        <button type="submit">Filtriraj</button>
     </form>
     <table border="1">
         <thead>
             <tr>
-                <th>City</th>
-                <th>Plant</th>
-                <th>Pollen Concentration</th>
-                <th>Date</th>
+                <th>Grad</th>
+                <th>Biljka</th>
+                <th>Koncentracija peludi</th>
+                <th>Datum</th>
             </tr>
         </thead>
         <tbody>

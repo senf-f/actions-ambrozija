@@ -1,34 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hr">
 <head>
   <meta charset="UTF-8">
-  <title>Pollen Graph</title>
+  <title>Peludni graf</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <h1>Pollen Concentration Graph</h1>
-  <p><a href="/">Table view</a></p>
+  <h1>Graf koncentracije peludi</h1>
+  <p><a href="/">Tablični prikaz</a></p>
 
   <form id="filter-form">
-    <label for="city-select">City:</label>
+    <label for="city-select">Grad:</label>
     <select id="city-select">
       {% for city in cities %}
       <option value="{{ city }}" {% if city == 'Zagreb' or (loop.first and 'Zagreb' not in cities) %}selected{% endif %}>{{ city }}</option>
       {% endfor %}
     </select>
 
-    <label for="date-from">From:</label>
+    <label for="date-from">Od:</label>
     <input type="date" id="date-from">
 
-    <label for="date-to">To:</label>
+    <label for="date-to">Do:</label>
     <input type="date" id="date-to">
 
-    <button type="button" id="apply-btn">Apply</button>
+    <button type="button" id="apply-btn">Primijeni</button>
   </form>
 
   <p id="error-msg" style="display:none;color:red"></p>
-  <p id="no-data-msg" style="display:none">No data for this selection.</p>
+  <p id="no-data-msg" style="display:none">Nema podataka za ovaj odabir.</p>
   <canvas id="pollen-chart" style="display:none"></canvas>
 
   <script>
@@ -54,7 +54,7 @@
       try {
         const city = document.getElementById('city-select').value;
         if (!city) {
-          errorMsg.textContent = 'No cities available';
+          errorMsg.textContent = 'Nema dostupnih gradova';
           errorMsg.style.display = '';
           return;
         }
@@ -63,7 +63,7 @@
         const dateTo = document.getElementById('date-to').value;
 
         if (dateFrom > dateTo) {
-          errorMsg.textContent = 'Start date must not be after end date';
+          errorMsg.textContent = 'Početni datum ne smije biti nakon završnog';
           errorMsg.style.display = '';
           return;
         }
@@ -74,7 +74,7 @@
         const resp = await fetch(url);
 
         if (!resp.ok) {
-          let msg = 'Request failed';
+          let msg = 'Zahtjev nije uspio';
           try { msg = (await resp.json()).error || msg; } catch (_) {}
           errorMsg.textContent = msg;
           errorMsg.style.display = '';
@@ -131,14 +131,14 @@
               tooltip: { mode: 'index', intersect: false }
             },
             scales: {
-              y: { beginAtZero: true, title: { display: true, text: 'Concentration' } },
-              x: { type: 'category', title: { display: true, text: 'Date' }, ticks: { callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10); } } }
+              y: { beginAtZero: true, title: { display: true, text: 'Koncentracija' } },
+              x: { type: 'category', title: { display: true, text: 'Datum' }, ticks: { callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10); } } }
             }
           }
         });
 
       } catch (err) {
-        errorMsg.textContent = 'Network error';
+        errorMsg.textContent = 'Greška mreže';
         errorMsg.style.display = '';
       }
     }
