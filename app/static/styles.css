@@ -175,6 +175,37 @@ body::after {
   box-shadow: 0 0 0 3px rgba(122, 158, 126, 0.15);
 }
 
+/* ── Pills ── */
+.pill-group {
+  display: flex;
+  gap: 6px;
+}
+
+.pill {
+  padding: 8px 16px;
+  border: 1.5px solid var(--sage-soft);
+  border-radius: 20px;
+  background: transparent;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--forest-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.pill:hover {
+  border-color: var(--sage);
+  background: rgba(122, 158, 126, 0.08);
+}
+
+.pill.active {
+  background: var(--forest-light);
+  color: #fff;
+  border-color: var(--forest-light);
+}
+
 .btn {
   padding: 10px 28px;
   background: var(--forest);

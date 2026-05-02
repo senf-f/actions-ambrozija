@@ -27,6 +27,14 @@
         </div>
 
         <div class="filter-group">
+          <label>Razdoblje</label>
+          <div class="pill-group">
+            <button type="button" class="pill active" id="pill-current">Ovaj mjesec</button>
+            <button type="button" class="pill" id="pill-prev">Prošli mjesec</button>
+          </div>
+        </div>
+
+        <div class="filter-group">
           <label for="date-from">Od</label>
           <input type="date" id="date-from">
         </div>
@@ -191,13 +199,45 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function setRange(monthOffset) {
       const today = new Date();
-      const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      document.getElementById('date-from').value = formatDate(firstOfMonth);
-      document.getElementById('date-to').value = formatDate(lastOfMonth);
+      const first = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+      const last = new Date(today.getFullYear(), today.getMonth() + monthOffset + 1, 0);
+      document.getElementById('date-from').value = formatDate(first);
+      document.getElementById('date-to').value = formatDate(last);
+    }
 
+    function activatePill(pill) {
+      document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const pillCurrent = document.getElementById('pill-current');
+      const pillPrev = document.getElementById('pill-prev');
+      const dateFrom = document.getElementById('date-from');
+      const dateTo = document.getElementById('date-to');
+
+      pillCurrent.addEventListener('click', () => {
+        activatePill(pillCurrent);
+        setRange(0);
+        fetchAndRender();
+      });
+
+      pillPrev.addEventListener('click', () => {
+        activatePill(pillPrev);
+        setRange(-1);
+        fetchAndRender();
+      });
+
+      dateFrom.addEventListener('change', () => {
+        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      });
+      dateTo.addEventListener('change', () => {
+        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      });
+
+      setRange(0);
       document.getElementById('apply-btn').addEventListener('click', () => { fetchAndRender(); });
 
       fetchAndRender();

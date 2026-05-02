@@ -19,6 +19,21 @@ class TestGraphPage:
         resp = client.get("/graph")
         assert resp.status_code == 200
 
+    def test_renders_period_pills(self, client):
+        resp = client.get("/graph")
+        body = resp.data.decode()
+        assert "pill-current" in body
+        assert "pill-prev" in body
+        assert "Ovaj mjesec" in body
+        assert "Prošli mjesec" in body
+
+    def test_pills_coexist_with_date_inputs(self, client):
+        resp = client.get("/graph")
+        body = resp.data.decode()
+        assert "date-from" in body
+        assert "date-to" in body
+        assert "pill-group" in body
+
 
 class TestGraphDataApi:
     def test_missing_city_returns_400(self, client):
