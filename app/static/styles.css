@@ -239,14 +239,16 @@ body::after {
 .table-card {
   background: var(--card);
   border-radius: 16px;
-  overflow: hidden;
   box-shadow: var(--shadow);
   border: 1px solid var(--sage-soft);
   animation: fadeUp 0.5s ease-out 0.2s both;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table-card table {
   width: 100%;
+  min-width: 500px;
   border-collapse: collapse;
   font-size: 0.88rem;
 }
@@ -291,15 +293,32 @@ body::after {
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .container { padding: 24px 16px 40px; }
-  .header h1 { font-size: 1.7rem; }
-  .filter-card { padding: 18px 16px; }
-  .filter-card form { gap: 12px; }
+  .container { padding: 20px 14px 32px; }
+
+  .header { margin-bottom: 24px; }
+  .header h1 { font-size: 1.5rem; }
+  .header .subtitle { font-size: 0.82rem; }
+
+  .filter-card { padding: 16px; }
+  .filter-card form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
   .filter-group select,
-  .filter-group input[type="date"] { min-width: 120px; }
-  .chart-card { padding: 16px; }
-  .table-card thead th,
+  .filter-group input[type="date"] {
+    min-width: unset;
+    width: 100%;
+  }
+  .btn { width: 100%; text-align: center; }
+
+  .chart-card { padding: 14px 10px; }
+
+  .table-card { border-radius: 12px; }
+  .table-card thead th { padding: 10px 12px; font-size: 0.72rem; }
+  .table-card thead th:first-child { padding-left: 12px; }
   .table-card tbody td { padding: 10px 12px; font-size: 0.82rem; }
+  .table-card tbody td:first-child { padding-left: 12px; }
 }
 
 /* ── Animations ── */
