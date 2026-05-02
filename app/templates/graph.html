@@ -51,6 +51,17 @@
     <p id="error-msg" class="error-msg" style="display:none"></p>
     <p id="no-data-msg" class="no-data-msg" style="display:none">Nema podataka za ovaj odabir.</p>
 
+    <div id="plant-filter" class="plant-filter-card" style="display:none">
+      <div class="plant-filter-header">
+        <span class="plant-filter-label">Biljke</span>
+        <div class="plant-filter-actions">
+          <button type="button" id="select-all" class="plant-action-btn">Sve</button>
+          <button type="button" id="select-none" class="plant-action-btn">Ništa</button>
+        </div>
+      </div>
+      <div id="plant-pills" class="plant-pills"></div>
+    </div>
+
     <div id="chart-wrapper" class="chart-card" style="display:none">
       <canvas id="pollen-chart"></canvas>
     </div>
@@ -63,6 +74,9 @@
     ];
 
     let chart = null;
+    let currentData = null;
+    let plantColors = {};
+    let activePlants = new Set();
 
     function formatDate(d) {
       const y = d.getFullYear();
@@ -71,11 +85,120 @@
       return `${y}-${m}-${day}`;
     }
 
+    function isMobile() {
+      return window.innerWidth <= 640;
+    }
+
+    function buildPlantPills(plants, rankedPlants) {
+      const container = document.getElementById('plant-pills');
+      container.innerHTML = '';
+
+      const defaultCount = isMobile() ? 3 : plants.length;
+      activePlants = new Set(rankedPlants.slice(0, defaultCount));
+
+      plants.forEach(plant => {
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = 'plant-pill' + (activePlants.has(plant) ? ' active' : '');
+        pill.dataset.plant = plant;
+        pill.innerHTML = `<span class="plant-pill-dot" style="background:${plantColors[plant]}"></span>${plant}`;
+        pill.addEventListener('click', () => {
+          if (activePlants.has(plant)) {
+            activePlants.delete(plant);
+            pill.classList.remove('active');
+          } else {
+            activePlants.add(plant);
+            pill.classList.add('active');
+          }
+          renderChart();
+        });
+        container.appendChild(pill);
+      });
+    }
+
+    function updatePillStates() {
+      document.querySelectorAll('.plant-pill').forEach(pill => {
+        const plant = pill.dataset.plant;
+        pill.classList.toggle('active', activePlants.has(plant));
+      });
+    }
+
+    function renderChart() {
+      const chartWrapper = document.getElementById('chart-wrapper');
+      const canvas = document.getElementById('pollen-chart');
+
+      if (!currentData) return;
+
+      const { byPlant, dates } = currentData;
+      const activeEntries = Object.entries(byPlant).filter(([plant]) => activePlants.has(plant));
+
+      if (activeEntries.length === 0) {
+        if (chart) { chart.destroy(); chart = null; }
+        chartWrapper.style.display = 'none';
+        return;
+      }
+
+      chartWrapper.style.display = '';
+
+      const datasets = activeEntries.map(([plant, dateMap]) => {
+        const color = plantColors[plant];
+        return {
+          label: plant,
+          data: dates.map(d => dateMap[d] ?? null),
+          borderColor: color,
+          backgroundColor: color + '18',
+          tension: 0.35,
+          spanGaps: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2.5
+        };
+      });
+
+      if (chart) chart.destroy();
+      chart = new Chart(canvas, {
+        type: 'line',
+        data: { labels: dates, datasets },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a3a2a',
+              titleFont: { family: 'Outfit', weight: '500' },
+              bodyFont: { family: 'Outfit' },
+              cornerRadius: 8,
+              padding: 12
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+              grid: { color: 'rgba(0,0,0,0.04)' },
+              ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+            },
+            x: {
+              type: 'category',
+              title: { display: true, text: 'Datum', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+              grid: { display: false },
+              ticks: {
+                font: { family: 'Outfit', size: 11 },
+                color: '#6b6b6b',
+                callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10) + '.'; }
+              }
+            }
+          }
+        }
+      });
+    }
+
     async function fetchAndRender() {
       const errorMsg = document.getElementById('error-msg');
       const noDataMsg = document.getElementById('no-data-msg');
       const chartWrapper = document.getElementById('chart-wrapper');
-      const canvas = document.getElementById('pollen-chart');
+      const plantFilter = document.getElementById('plant-filter');
 
       try {
         const city = document.getElementById('city-select').value;
@@ -105,6 +228,7 @@
           errorMsg.textContent = msg;
           errorMsg.style.display = '';
           chartWrapper.style.display = 'none';
+          plantFilter.style.display = 'none';
           noDataMsg.style.display = 'none';
           return;
         }
@@ -114,13 +238,13 @@
         if (rows.length === 0) {
           if (chart) { chart.destroy(); chart = null; }
           chartWrapper.style.display = 'none';
+          plantFilter.style.display = 'none';
           noDataMsg.style.display = '';
           return;
         }
 
         noDataMsg.style.display = 'none';
         errorMsg.style.display = 'none';
-        chartWrapper.style.display = '';
 
         const byPlant = {};
         for (const row of rows) {
@@ -129,69 +253,23 @@
         }
 
         const dates = [...new Set(rows.map(r => r.date))].sort();
-        const labels = dates;
 
-        const datasets = Object.entries(byPlant).map(([plant, dateMap], i) => {
-          const color = PALETTE[i % PALETTE.length];
-          return {
-            label: plant,
-            data: dates.map(d => dateMap[d] ?? null),
-            borderColor: color,
-            backgroundColor: color + '18',
-            tension: 0.35,
-            spanGaps: true,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            borderWidth: 2.5
-          };
+        const plants = Object.keys(byPlant);
+        plants.forEach((plant, i) => {
+          plantColors[plant] = PALETTE[i % PALETTE.length];
         });
 
-        if (chart) chart.destroy();
-        chart = new Chart(canvas, {
-          type: 'line',
-          data: { labels, datasets },
-          options: {
-            responsive: true,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: {
-                  boxWidth: 14,
-                  padding: 20,
-                  font: { family: 'Outfit', size: 13 },
-                  usePointStyle: true,
-                  pointStyle: 'circle'
-                }
-              },
-              tooltip: {
-                backgroundColor: '#1a3a2a',
-                titleFont: { family: 'Outfit', weight: '500' },
-                bodyFont: { family: 'Outfit' },
-                cornerRadius: 8,
-                padding: 12
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-                grid: { color: 'rgba(0,0,0,0.04)' },
-                ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
-              },
-              x: {
-                type: 'category',
-                title: { display: true, text: 'Datum', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-                grid: { display: false },
-                ticks: {
-                  font: { family: 'Outfit', size: 11 },
-                  color: '#6b6b6b',
-                  callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10) + '.'; }
-                }
-              }
-            }
-          }
+        const rankedPlants = plants.slice().sort((a, b) => {
+          const avgA = Object.values(byPlant[a]).reduce((s, v) => s + v, 0) / Object.values(byPlant[a]).length;
+          const avgB = Object.values(byPlant[b]).reduce((s, v) => s + v, 0) / Object.values(byPlant[b]).length;
+          return avgB - avgA;
         });
+
+        currentData = { byPlant, dates };
+
+        plantFilter.style.display = '';
+        buildPlantPills(plants, rankedPlants);
+        renderChart();
 
       } catch (err) {
         errorMsg.textContent = 'Greška mreže';
@@ -235,6 +313,19 @@
       });
       dateTo.addEventListener('change', () => {
         document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      });
+
+      document.getElementById('select-all').addEventListener('click', () => {
+        if (!currentData) return;
+        activePlants = new Set(Object.keys(currentData.byPlant));
+        updatePillStates();
+        renderChart();
+      });
+
+      document.getElementById('select-none').addEventListener('click', () => {
+        activePlants.clear();
+        updatePillStates();
+        renderChart();
       });
 
       setRange(0);

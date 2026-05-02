@@ -34,6 +34,14 @@ class TestGraphPage:
         assert "date-to" in body
         assert "pill-group" in body
 
+    def test_renders_plant_filter(self, client):
+        resp = client.get("/graph")
+        body = resp.data.decode()
+        assert "plant-filter" in body
+        assert "plant-pills" in body
+        assert "select-all" in body
+        assert "select-none" in body
+
 
 class TestGraphDataApi:
     def test_missing_city_returns_400(self, client):

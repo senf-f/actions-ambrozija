@@ -230,6 +230,101 @@ body::after {
   transform: translateY(0);
 }
 
+/* ── Plant filter ── */
+.plant-filter-card {
+  background: var(--card);
+  padding: 18px 24px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--sage-soft);
+  margin-bottom: 20px;
+  animation: fadeUp 0.5s ease-out 0.15s both;
+}
+
+.plant-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.plant-filter-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sage);
+}
+
+.plant-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.plant-action-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plant-action-btn:hover {
+  border-color: var(--sage);
+  color: var(--forest-light);
+}
+
+.plant-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plant-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  background: transparent;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.plant-pill:hover {
+  border-color: var(--sage);
+  background: rgba(122, 158, 126, 0.06);
+}
+
+.plant-pill.active {
+  border-color: var(--forest-light);
+  color: var(--forest);
+  font-weight: 500;
+  background: rgba(45, 90, 66, 0.06);
+}
+
+.plant-pill-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.plant-pill:not(.active) .plant-pill-dot {
+  opacity: 0.3;
+}
+
 /* ── Messages ── */
 .error-msg {
   color: #c0392b;
@@ -342,6 +437,10 @@ body::after {
     width: 100%;
   }
   .btn { width: 100%; text-align: center; }
+
+  .plant-filter-card { padding: 14px 16px; }
+  .plant-pills { gap: 6px; }
+  .plant-pill { font-size: 0.72rem; padding: 5px 10px; }
 
   .chart-card { padding: 14px 10px; }
 
