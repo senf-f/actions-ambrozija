@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usporedba peludi</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Usporedba koncentracije peludi</h1>
+      <p class="subtitle">Jedna biljka i grad kroz različita razdoblja</p>
+      <a href="/" class="nav-link" data-icon="&#x2937;">Tablični prikaz</a>
+      <a href="/graph" class="nav-link" data-icon="&#x2937;">Graf</a>
+    </div>
+
+    <div class="filter-card">
+      <form id="filter-form">
+        <div class="filter-group">
+          <label for="city-select">Grad</label>
+          <select id="city-select">
+            {% for city in cities %}
+            <option value="{{ city }}" {% if city == 'Zagreb' or (loop.first and 'Zagreb' not in cities) %}selected{% endif %}>{{ city }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="plant-select">Biljka</label>
+          <select id="plant-select"></select>
+        </div>
+
+        <div class="filter-group filter-group-wide">
+          <label>Razdoblja (mjeseci)</label>
+          <div id="periods" class="periods"></div>
+          <button type="button" id="add-period" class="plant-action-btn">+ Dodaj razdoblje</button>
+        </div>
+
+        <button type="button" id="apply-btn" class="btn">Primijeni</button>
+      </form>
+    </div>
+
+    <p id="error-msg" class="error-msg" style="display:none"></p>
+    <p id="no-data-msg" class="no-data-msg" style="display:none">Nema podataka za ovaj odabir.</p>
+
+    <div id="chart-wrapper" class="chart-card" style="display:none">
+      <canvas id="compare-chart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const PALETTE = [
+      '#2d5a42','#d4a843','#c0392b','#2980b9','#7c3aed',
+      '#0891b2','#be185d','#92400e','#16a34a','#1a3a2a'
+    ];
+    const MONTHS_HR = [
+      'Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
+      'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'
+    ];
+
+    let chart = null;
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function lastDayOfMonth(year, month) {
+      return new Date(year, month, 0).getDate(); // month is 1-based here
+    }
+
+    function periodLabel(year, month) {
+      return `${MONTHS_HR[month - 1]} ${year}`;
+    }
+
+    function buildPeriodRow(year, month) {
+      const row = document.createElement('div');
+      row.className = 'period-row';
+
+      const monthSel = document.createElement('select');
+      monthSel.className = 'period-month';
+      MONTHS_HR.forEach((name, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i + 1);
+        opt.textContent = name;
+        if (i + 1 === month) opt.selected = true;
+        monthSel.appendChild(opt);
+      });
+
+      const yearInput = document.createElement('input');
+      yearInput.type = 'number';
+      yearInput.className = 'period-year';
+      yearInput.value = String(year);
+      yearInput.min = '2000';
+      yearInput.max = '2100';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'plant-action-btn period-remove';
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', () => {
+        const periods = document.getElementById('periods');
+        if (periods.querySelectorAll('.period-row').length > 1) {
+          row.remove();
+        }
+      });
+
+      row.appendChild(monthSel);
+      row.appendChild(yearInput);
+      row.appendChild(removeBtn);
+      return row;
+    }
+
+    function readPeriods() {
+      return [...document.querySelectorAll('.period-row')].map(row => ({
+        month: parseInt(row.querySelector('.period-month').value, 10),
+        year: parseInt(row.querySelector('.period-year').value, 10)
+      })).filter(p => Number.isInteger(p.month) && Number.isInteger(p.year));
+    }
+
+    async function loadPlants(city) {
+      const plantSelect = document.getElementById('plant-select');
+      plantSelect.innerHTML = '';
+      if (!city) return;
+      const resp = await fetch(`/api/plants?city=${encodeURIComponent(city)}`);
+      if (!resp.ok) return;
+      const plants = await resp.json();
+      plants.forEach(plant => {
+        const opt = document.createElement('option');
+        opt.value = plant;
+        opt.textContent = plant;
+        plantSelect.appendChild(opt);
+      });
+    }
+
+    async function fetchPeriod(city, plant, period) {
+      const from = `${period.year}-${pad(period.month)}-01`;
+      const to = `${period.year}-${pad(period.month)}-${pad(lastDayOfMonth(period.year, period.month))}`;
+      const url = `/api/graph-data?city=${encodeURIComponent(city)}&date_from=${from}&date_to=${to}`;
+      const resp = await fetch(url);
+      if (!resp.ok) return {};
+      const rows = await resp.json();
+      const byDay = {};
+      for (const r of rows) {
+        if (r.plant !== plant) continue;
+        const day = parseInt(r.date.split('-')[2], 10);
+        byDay[day] = r.concentration;
+      }
+      return byDay;
+    }
+
+    function renderChart(datasets) {
+      const chartWrapper = document.getElementById('chart-wrapper');
+      const canvas = document.getElementById('compare-chart');
+      const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+      chartWrapper.style.display = '';
+      if (chart) chart.destroy();
+      chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: days,
+          datasets: datasets.map((ds, i) => {
+            const color = PALETTE[i % PALETTE.length];
+            return {
+              label: ds.label,
+              data: days.map(d => ds.byDay[d] ?? null),
+              borderColor: color,
+              backgroundColor: color + '18',
+              tension: 0.35,
+              spanGaps: true,
+              pointRadius: 3,
+              pointHoverRadius: 6,
+              borderWidth: 2.5
+            };
+          })
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              display: true,
+              labels: { font: { family: 'Outfit', size: 12 }, color: '#6b6b6b' }
+            },
+            tooltip: {
+              backgroundColor: '#1a3a2a',
+              titleFont: { family: 'Outfit', weight: '500' },
+              bodyFont: { family: 'Outfit' },
+              cornerRadius: 8,
+              padding: 12
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+              grid: { color: 'rgba(0,0,0,0.04)' },
+              ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+            },
+            x: {
+              type: 'category',
+              title: { display: true, text: 'Dan u mjesecu', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+              grid: { display: false },
+              ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+            }
+          }
+        }
+      });
+    }
+
+    async function fetchAndRender() {
+      const errorMsg = document.getElementById('error-msg');
+      const noDataMsg = document.getElementById('no-data-msg');
+      const chartWrapper = document.getElementById('chart-wrapper');
+
+      try {
+        const city = document.getElementById('city-select').value;
+        const plant = document.getElementById('plant-select').value;
+
+        if (!city) {
+          errorMsg.textContent = 'Nema dostupnih gradova';
+          errorMsg.style.display = '';
+          return;
+        }
+        if (!plant) {
+          errorMsg.textContent = 'Odaberite biljku';
+          errorMsg.style.display = '';
+          return;
+        }
+
+        const periods = readPeriods();
+        if (periods.length === 0) {
+          errorMsg.textContent = 'Dodajte barem jedno razdoblje';
+          errorMsg.style.display = '';
+          return;
+        }
+
+        errorMsg.style.display = 'none';
+
+        const datasets = [];
+        for (const period of periods) {
+          const byDay = await fetchPeriod(city, plant, period);
+          datasets.push({ label: periodLabel(period.year, period.month), byDay });
+        }
+
+        const hasData = datasets.some(ds => Object.keys(ds.byDay).length > 0);
+        if (!hasData) {
+          if (chart) { chart.destroy(); chart = null; }
+          chartWrapper.style.display = 'none';
+          noDataMsg.style.display = '';
+          return;
+        }
+
+        noDataMsg.style.display = 'none';
+        renderChart(datasets);
+
+      } catch (err) {
+        errorMsg.textContent = 'Greška mreže';
+        errorMsg.style.display = '';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const periodsEl = document.getElementById('periods');
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth() + 1;
+
+      periodsEl.appendChild(buildPeriodRow(curYear, curMonth));
+      periodsEl.appendChild(buildPeriodRow(curYear - 1, curMonth));
+
+      document.getElementById('add-period').addEventListener('click', () => {
+        periodsEl.appendChild(buildPeriodRow(curYear, curMonth));
+      });
+
+      document.getElementById('city-select').addEventListener('change', async () => {
+        await loadPlants(document.getElementById('city-select').value);
+        fetchAndRender();
+      });
+
+      document.getElementById('apply-btn').addEventListener('click', () => { fetchAndRender(); });
+
+      await loadPlants(document.getElementById('city-select').value);
+      fetchAndRender();
+    });
+  </script>
+</body>
+</html>

@@ -65,6 +65,38 @@ def graph():
     return render_template('graph.html', cities=cities)
 
 
+@app.route('/compare')
+def compare():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT DISTINCT city FROM pollen_data ORDER BY city ASC')
+        cities = [row[0] for row in cursor.fetchall()]
+    finally:
+        conn.close()
+    return render_template('compare.html', cities=cities)
+
+
+@app.route('/api/plants')
+def plants():
+    city = request.args.get('city', '').strip()
+    if not city:
+        return jsonify({'error': 'city is required'}), 400
+
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT DISTINCT plant FROM pollen_data WHERE city = ? ORDER BY plant ASC',
+            (city,)
+        )
+        result = [row[0] for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+    return jsonify(result)
+
+
 @app.route('/api/graph-data')
 def graph_data():
     city = request.args.get('city', '').strip()

@@ -175,6 +175,47 @@ body::after {
   box-shadow: 0 0 0 3px rgba(122, 158, 126, 0.15);
 }
 
+/* ── Compare periods ── */
+.filter-group-wide {
+  flex: 1 1 100%;
+  align-items: flex-start;
+}
+
+.periods {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.period-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.period-row .period-year {
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.88rem;
+  background: var(--cream-warm);
+  color: var(--text);
+  width: 90px;
+  transition: all 0.2s ease;
+}
+
+.period-row .period-year:focus {
+  outline: none;
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px rgba(122, 158, 126, 0.15);
+}
+
+.period-remove {
+  padding: 8px 12px;
+}
+
 /* ── Pills ── */
 .pill-group {
   display: flex;
