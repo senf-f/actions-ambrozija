@@ -168,3 +168,5 @@ data/
 .worktrees/
 .superpowers/
 DEVNOTES.md
+.playwright-mcp/
+TODO.md
