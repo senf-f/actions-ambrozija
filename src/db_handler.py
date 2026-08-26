@@ -23,6 +23,16 @@ def setup_db():
             UNIQUE(city, plant, date)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rain_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station TEXT NOT NULL,
+            city TEXT NOT NULL,
+            rain_mm REAL NOT NULL,
+            date DATE NOT NULL,
+            UNIQUE(station, date)
+        )
+    ''')
     conn.commit()
     return conn
 
@@ -33,4 +43,13 @@ def insert_into_db(conn, city, plant, pollen_concentration, date):
         INSERT OR REPLACE INTO pollen_data (city, plant, pollen_concentration, date)
         VALUES (?, ?, ?, ?)
     ''', (city, plant, pollen_concentration, date))
+    conn.commit()
+
+def insert_into_rain_db(conn, station, city, rain_mm, date):
+    """Insert rain data into the database, avoiding duplicates."""
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO rain_data (station, city, rain_mm, date)
+        VALUES (?, ?, ?, ?)
+    ''', (station, city, rain_mm, date))
     conn.commit()

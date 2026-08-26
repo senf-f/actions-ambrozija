@@ -63,8 +63,17 @@
       <div id="plant-pills" class="plant-pills"></div>
     </div>
 
+    <div id="rain-toggle-wrap" class="rain-toggle" style="display:none">
+      <label><input type="checkbox" id="rain-toggle"> Prikaži oborine (DHMZ)</label>
+    </div>
+
     <div id="chart-wrapper" class="chart-card" style="display:none">
       <canvas id="pollen-chart"></canvas>
+    </div>
+
+    <div class="footer">
+      Izvor oborina: DHMZ &mdash;
+      <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a>
     </div>
   </div>
 
@@ -74,10 +83,13 @@
       '#0891b2','#be185d','#92400e','#16a34a','#1a3a2a'
     ];
 
+    const RAIN_COLORS = ['#2980b9', '#5dade2', '#85c1e9'];
+
     let chart = null;
     let currentData = null;
     let plantColors = {};
     let activePlants = new Set();
+    let rainByStation = {};
 
     function formatDate(d) {
       const y = d.getFullYear();
@@ -152,9 +164,58 @@
           spanGaps: true,
           pointRadius: 4,
           pointHoverRadius: 6,
-          borderWidth: 2.5
+          borderWidth: 2.5,
+          order: 1
         };
       });
+
+      const showRain = document.getElementById('rain-toggle').checked;
+      const stations = Object.keys(rainByStation);
+      if (showRain) {
+        stations.forEach((station, i) => {
+          const color = RAIN_COLORS[i % RAIN_COLORS.length];
+          const dateMap = rainByStation[station];
+          datasets.push({
+            label: station + ' (oborine)',
+            type: 'bar',
+            data: dates.map(d => dateMap[d] ?? null),
+            backgroundColor: color + '66',
+            borderColor: color,
+            borderWidth: 1,
+            yAxisID: 'y1',
+            order: 2
+          });
+        });
+      }
+
+      const scales = {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+          ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+        },
+        x: {
+          type: 'category',
+          title: { display: true, text: 'Datum', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+          grid: { display: false },
+          ticks: {
+            font: { family: 'Outfit', size: 11 },
+            color: '#6b6b6b',
+            callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10) + '.'; }
+          }
+        }
+      };
+
+      if (showRain && stations.length > 0) {
+        scales.y1 = {
+          beginAtZero: true,
+          position: 'right',
+          title: { display: true, text: 'Oborine (mm)', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#2980b9' },
+          grid: { drawOnChartArea: false },
+          ticks: { font: { family: 'Outfit', size: 11 }, color: '#2980b9' }
+        };
+      }
 
       if (chart) chart.destroy();
       chart = new Chart(canvas, {
@@ -173,24 +234,7 @@
               padding: 12
             }
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-              grid: { color: 'rgba(0,0,0,0.04)' },
-              ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
-            },
-            x: {
-              type: 'category',
-              title: { display: true, text: 'Datum', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-              grid: { display: false },
-              ticks: {
-                font: { family: 'Outfit', size: 11 },
-                color: '#6b6b6b',
-                callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10) + '.'; }
-              }
-            }
-          }
+          scales: scales
         }
       });
     }
@@ -253,7 +297,23 @@
           byPlant[row.plant][row.date] = row.concentration;
         }
 
-        const dates = [...new Set(rows.map(r => r.date))].sort();
+        rainByStation = {};
+        try {
+          const rainUrl = `/api/rain-data?city=${encodeURIComponent(city)}&date_from=${dateFrom}&date_to=${dateTo}`;
+          const rainResp = await fetch(rainUrl);
+          if (rainResp.ok) {
+            for (const r of await rainResp.json()) {
+              if (!rainByStation[r.station]) rainByStation[r.station] = {};
+              rainByStation[r.station][r.date] = r.mm;
+            }
+          }
+        } catch (_) { /* rain overlay is optional */ }
+
+        document.getElementById('rain-toggle-wrap').style.display =
+          Object.keys(rainByStation).length ? '' : 'none';
+
+        const rainDates = Object.values(rainByStation).flatMap(m => Object.keys(m));
+        const dates = [...new Set([...rows.map(r => r.date), ...rainDates])].sort();
 
         const plants = Object.keys(byPlant);
         plants.forEach((plant, i) => {
@@ -328,6 +388,8 @@
         updatePillStates();
         renderChart();
       });
+
+      document.getElementById('rain-toggle').addEventListener('change', renderChart);
 
       setRange(0);
       document.getElementById('apply-btn').addEventListener('click', () => { fetchAndRender(); });

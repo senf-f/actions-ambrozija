@@ -1,0 +1,41 @@
+name: run rain_scraper.py
+
+on:
+  schedule:
+    - cron: '0 11 * * *'  # every day at 11:00 (30 min after pollen scraper)
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      BASE_DIR: ${{ github.workspace }}
+      PYTHONPATH: .
+
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute rain scraper
+        run: python src/rain_scraper.py
+
+      - name: Commit and push updated database
+        run: |
+          git config --local user.email "mate.mrse@gmail.com"
+          git config --local user.name "GitHub Action"
+          git add -f db/
+          git commit -m "rain scraper: updated data" || echo "No changes to commit"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

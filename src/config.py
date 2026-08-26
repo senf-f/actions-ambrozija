@@ -4,3 +4,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 BASE_URL = "https://stampar.hr/hr/peludna-prognoza"
 DB_PATH = os.path.join(BASE_DIR, "db", "pollen_data.db")
+
+RAIN_URL = "https://vrijeme.hr/oborina.xml"
+RAIN_CITIES = ("Split", "Zagreb")
