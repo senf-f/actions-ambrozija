@@ -23,10 +23,16 @@ def index():
         cursor.execute('SELECT DISTINCT strftime("%Y-%m", date) as month FROM pollen_data ORDER BY month')
         months = [row[0] for row in cursor.fetchall()]
 
-        # Get filter parameters
-        selected_city = request.args.get('city')
-        selected_plant = request.args.get('plant')
-        selected_month = request.args.get('month')
+        # Get filter parameters. On a fresh visit (no params) default to
+        # Zagreb + current month so we don't load the whole table.
+        if not request.args:
+            selected_city = 'Zagreb'
+            selected_plant = None
+            selected_month = datetime.today().strftime('%Y-%m')
+        else:
+            selected_city = request.args.get('city')
+            selected_plant = request.args.get('plant')
+            selected_month = request.args.get('month')
 
         # Build the query with filters
         query = 'SELECT city, plant, pollen_concentration, date FROM pollen_data WHERE 1=1'
