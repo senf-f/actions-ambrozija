@@ -45,8 +45,17 @@
     <p id="error-msg" class="error-msg" style="display:none"></p>
     <p id="no-data-msg" class="no-data-msg" style="display:none">Nema podataka za ovaj odabir.</p>
 
+    <div class="rain-toggle">
+      <label><input type="checkbox" id="rain-toggle"> Prikaži oborine (DHMZ)</label>
+    </div>
+
     <div id="chart-wrapper" class="chart-card" style="display:none">
       <canvas id="compare-chart"></canvas>
+    </div>
+
+    <div class="footer">
+      Izvor oborina: DHMZ &mdash;
+      <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a>
     </div>
   </div>
 
@@ -59,6 +68,7 @@
       'Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
       'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'
     ];
+    const RAIN_COLORS = ['#2980b9', '#5dade2', '#85c1e9'];
 
     let chart = null;
 
@@ -148,32 +158,86 @@
       return byDay;
     }
 
-    function renderChart(datasets) {
+    async function fetchPeriodRain(city, period) {
+      const from = `${period.year}-${pad(period.month)}-01`;
+      const to = `${period.year}-${pad(period.month)}-${pad(lastDayOfMonth(period.year, period.month))}`;
+      const url = `/api/rain-data?city=${encodeURIComponent(city)}&date_from=${from}&date_to=${to}`;
+      const resp = await fetch(url);
+      if (!resp.ok) return {};
+      const byStation = {};
+      for (const r of await resp.json()) {
+        const day = parseInt(r.date.split('-')[2], 10);
+        if (!byStation[r.station]) byStation[r.station] = {};
+        byStation[r.station][day] = r.mm;
+      }
+      return byStation;
+    }
+
+    function renderChart(datasets, rainDatasets) {
       const chartWrapper = document.getElementById('chart-wrapper');
       const canvas = document.getElementById('compare-chart');
       const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+      const pollenDs = datasets.map((ds, i) => {
+        const color = PALETTE[i % PALETTE.length];
+        return {
+          label: ds.label,
+          data: days.map(d => ds.byDay[d] ?? null),
+          borderColor: color,
+          backgroundColor: color + '18',
+          tension: 0.35,
+          spanGaps: true,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2.5,
+          order: 1
+        };
+      });
+
+      const rainDs = (rainDatasets || []).map((ds, i) => {
+        const color = RAIN_COLORS[i % RAIN_COLORS.length];
+        return {
+          label: ds.label,
+          type: 'bar',
+          data: days.map(d => ds.byDay[d] ?? null),
+          backgroundColor: color + '66',
+          borderColor: color,
+          borderWidth: 1,
+          yAxisID: 'y1',
+          order: 2
+        };
+      });
+
+      const scales = {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+          ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+        },
+        x: {
+          type: 'category',
+          title: { display: true, text: 'Dan u mjesecu', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+          grid: { display: false },
+          ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+        }
+      };
+
+      if (rainDs.length) {
+        scales.y1 = {
+          beginAtZero: true,
+          position: 'right',
+          title: { display: true, text: 'Oborine (mm)', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#2980b9' },
+          grid: { drawOnChartArea: false },
+          ticks: { font: { family: 'Outfit', size: 11 }, color: '#2980b9' }
+        };
+      }
 
       chartWrapper.style.display = '';
       if (chart) chart.destroy();
       chart = new Chart(canvas, {
         type: 'line',
-        data: {
-          labels: days,
-          datasets: datasets.map((ds, i) => {
-            const color = PALETTE[i % PALETTE.length];
-            return {
-              label: ds.label,
-              data: days.map(d => ds.byDay[d] ?? null),
-              borderColor: color,
-              backgroundColor: color + '18',
-              tension: 0.35,
-              spanGaps: true,
-              pointRadius: 3,
-              pointHoverRadius: 6,
-              borderWidth: 2.5
-            };
-          })
-        },
+        data: { labels: days, datasets: pollenDs.concat(rainDs) },
         options: {
           responsive: true,
           interaction: { mode: 'index', intersect: false },
@@ -190,20 +254,7 @@
               padding: 12
             }
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-              grid: { color: 'rgba(0,0,0,0.04)' },
-              ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
-            },
-            x: {
-              type: 'category',
-              title: { display: true, text: 'Dan u mjesecu', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-              grid: { display: false },
-              ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
-            }
-          }
+          scales: scales
         }
       });
     }
@@ -243,7 +294,18 @@
           datasets.push({ label: periodLabel(period.year, period.month), byDay });
         }
 
-        const hasData = datasets.some(ds => Object.keys(ds.byDay).length > 0);
+        const rainDatasets = [];
+        if (document.getElementById('rain-toggle').checked) {
+          for (const period of periods) {
+            const byStation = await fetchPeriodRain(city, period);
+            for (const [station, byDay] of Object.entries(byStation)) {
+              rainDatasets.push({ label: `${periodLabel(period.year, period.month)} — ${station} (oborine)`, byDay });
+            }
+          }
+        }
+
+        const hasData = datasets.some(ds => Object.keys(ds.byDay).length > 0)
+          || rainDatasets.some(ds => Object.keys(ds.byDay).length > 0);
         if (!hasData) {
           if (chart) { chart.destroy(); chart = null; }
           chartWrapper.style.display = 'none';
@@ -252,7 +314,7 @@
         }
 
         noDataMsg.style.display = 'none';
-        renderChart(datasets);
+        renderChart(datasets, rainDatasets);
 
       } catch (err) {
         errorMsg.textContent = 'Greška mreže';
@@ -279,6 +341,7 @@
       });
 
       document.getElementById('apply-btn').addEventListener('click', () => { fetchAndRender(); });
+      document.getElementById('rain-toggle').addEventListener('change', () => { fetchAndRender(); });
 
       await loadPlants(document.getElementById('city-select').value);
       fetchAndRender();
