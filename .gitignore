@@ -170,3 +170,4 @@ data/
 DEVNOTES.md
 .playwright-mcp/
 TODO.md
+*.xlsx
