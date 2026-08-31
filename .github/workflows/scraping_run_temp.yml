@@ -1,0 +1,44 @@
+name: run temp_scraper.py
+
+on:
+  schedule:
+    # 15:00 local time in Croatia: 13:05 UTC in CEST, 14:05 UTC in CET.
+    # Both fire; the air scrape no-ops on the run where the feed isn't at 15h.
+    - cron: '5 13 * * *'
+    - cron: '5 14 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      BASE_DIR: ${{ github.workspace }}
+      PYTHONPATH: .
+
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute temperature scraper
+        run: python src/temp_scraper.py
+
+      - name: Commit and push updated database
+        run: |
+          git config --local user.email "mate.mrse@gmail.com"
+          git config --local user.name "GitHub Action"
+          git add -f db/
+          git commit -m "temp scraper: updated data" || echo "No changes to commit"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

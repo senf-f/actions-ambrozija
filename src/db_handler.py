@@ -33,6 +33,27 @@ def setup_db():
             UNIQUE(station, date)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS air_temp_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station TEXT NOT NULL,
+            city TEXT NOT NULL,
+            temp_c REAL NOT NULL,
+            hour TEXT NOT NULL,
+            date DATE NOT NULL,
+            UNIQUE(station, date)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sea_temp_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station TEXT NOT NULL,
+            temp_c REAL NOT NULL,
+            hour TEXT NOT NULL,
+            date DATE NOT NULL,
+            UNIQUE(station, date)
+        )
+    ''')
     conn.commit()
     return conn
 
@@ -52,4 +73,22 @@ def insert_into_rain_db(conn, station, city, rain_mm, date):
         INSERT OR REPLACE INTO rain_data (station, city, rain_mm, date)
         VALUES (?, ?, ?, ?)
     ''', (station, city, rain_mm, date))
+    conn.commit()
+
+def insert_into_air_temp_db(conn, station, city, temp_c, hour, date):
+    """Insert air temperature into the database, avoiding duplicates."""
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO air_temp_data (station, city, temp_c, hour, date)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (station, city, temp_c, hour, date))
+    conn.commit()
+
+def insert_into_sea_temp_db(conn, station, temp_c, hour, date):
+    """Insert sea temperature into the database, avoiding duplicates."""
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO sea_temp_data (station, temp_c, hour, date)
+        VALUES (?, ?, ?, ?)
+    ''', (station, temp_c, hour, date))
     conn.commit()
