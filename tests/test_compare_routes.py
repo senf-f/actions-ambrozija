@@ -62,3 +62,53 @@ class TestPlantsApi:
         resp = client_with_data.get("/api/plants?city=Nonexistent")
         assert resp.status_code == 200
         assert resp.get_json() == []
+
+
+class TestTempApi:
+    RANGE = "date_from=2026-03-01&date_to=2026-03-31"
+
+    def test_missing_city_returns_400(self, client):
+        resp = client.get("/api/temp-data")
+        assert resp.status_code == 400
+        assert resp.get_json()["error"] == "city is required"
+
+    def test_bad_date_returns_400(self, client):
+        resp = client.get("/api/temp-data?city=Zagreb&date_from=nonsense")
+        assert resp.status_code == 400
+        assert resp.get_json()["error"] == "invalid date format, expected YYYY-MM-DD"
+
+    def test_reversed_range_returns_400(self, client):
+        resp = client.get("/api/temp-data?city=Zagreb&date_from=2026-03-31&date_to=2026-03-01")
+        assert resp.status_code == 400
+        assert resp.get_json()["error"] == "date_from must not be after date_to"
+
+    def test_returns_air_and_sea_for_coastal_city(self, client_with_data):
+        resp = client_with_data.get(f"/api/temp-data?city=Split&{self.RANGE}")
+        assert resp.status_code == 200
+        assert resp.get_json() == {
+            "air": [{"date": "2026-03-01", "temp": 17.2}],
+            "sea": [{"date": "2026-03-01", "temp": 14.1}, {"date": "2026-03-02", "temp": 14.3}],
+        }
+
+    def test_inland_city_has_air_but_no_sea(self, client_with_data):
+        resp = client_with_data.get(f"/api/temp-data?city=Zagreb&{self.RANGE}")
+        payload = resp.get_json()
+        assert len(payload["air"]) == 2
+        assert payload["sea"] == []
+
+    def test_range_excludes_outside_dates(self, client_with_data):
+        resp = client_with_data.get(
+            "/api/temp-data?city=Zagreb&date_from=2026-03-02&date_to=2026-03-02"
+        )
+        assert resp.get_json()["air"] == [{"date": "2026-03-02", "temp": 14.0}]
+
+    def test_unknown_city_returns_empty_series(self, client_with_data):
+        resp = client_with_data.get(f"/api/temp-data?city=Nonexistent&{self.RANGE}")
+        assert resp.status_code == 200
+        assert resp.get_json() == {"air": [], "sea": []}
+
+
+class TestCompareTempToggle:
+    def test_renders_temp_toggle(self, client):
+        body = client.get("/compare").data.decode()
+        assert "temp-toggle" in body

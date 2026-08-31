@@ -22,6 +22,37 @@ def client(tmp_path, monkeypatch):
             UNIQUE(city, plant, date)
         )
     """)
+    conn.execute("""
+        CREATE TABLE rain_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station TEXT NOT NULL,
+            city TEXT NOT NULL,
+            rain_mm REAL NOT NULL,
+            date DATE NOT NULL,
+            UNIQUE(station, date)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE air_temp_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station TEXT NOT NULL,
+            city TEXT NOT NULL,
+            temp_c REAL NOT NULL,
+            hour TEXT NOT NULL,
+            date DATE NOT NULL,
+            UNIQUE(station, date)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE sea_temp_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            station TEXT NOT NULL,
+            temp_c REAL NOT NULL,
+            hour TEXT NOT NULL,
+            date DATE NOT NULL,
+            UNIQUE(station, date)
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -44,6 +75,21 @@ def client_with_data(client):
             ("Zagreb", "Trave (Poaceae)", "1.0", "2026-03-01"),
             ("Zagreb", "Trave (Poaceae)", "bad_value", "2026-03-03"),  # non-numeric — must be excluded
             ("Split", "Maslina (Olea sp.)", "4.0", "2026-03-01"),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO air_temp_data (station, city, temp_c, hour, date) VALUES (?, ?, ?, ?, ?)",
+        [
+            ("Zagreb-Maksimir", "Zagreb", 12.5, "15", "2026-03-01"),
+            ("Zagreb-Maksimir", "Zagreb", 14.0, "15", "2026-03-02"),
+            ("Split-Marjan", "Split", 17.2, "15", "2026-03-01"),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO sea_temp_data (station, temp_c, hour, date) VALUES (?, ?, ?, ?)",
+        [
+            ("Split", 14.1, "08", "2026-03-01"),
+            ("Split", 14.3, "08", "2026-03-02"),
         ],
     )
     conn.commit()

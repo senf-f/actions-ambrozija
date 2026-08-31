@@ -47,6 +47,7 @@
 
     <div class="rain-toggle">
       <label><input type="checkbox" id="rain-toggle"> Prikaži oborine (DHMZ)</label>
+      <label><input type="checkbox" id="temp-toggle"> Prikaži temperature (DHMZ)</label>
     </div>
 
     <div id="chart-wrapper" class="chart-card" style="display:none">
@@ -55,7 +56,7 @@
 
     <div class="footer">
       Izvor peludi: <a href="https://stampar.hr/hr" target="_blank" rel="noopener">stampar.hr</a><br>
-      Izvor oborina: DHMZ &mdash;
+      Izvor oborina i temperatura: DHMZ &mdash;
       <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a>
     </div>
   </div>
@@ -70,6 +71,8 @@
       'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'
     ];
     const RAIN_COLORS = ['#2980b9', '#5dade2', '#85c1e9'];
+    const TEMP_COLORS = { air: '#e67e22', sea: '#0891b2' };
+    const TEMP_LABELS = { air: 'zrak 15h', sea: 'more 8h' };
 
     let chart = null;
 
@@ -143,38 +146,54 @@
       });
     }
 
-    async function fetchPeriod(city, plant, period) {
+    function periodQuery(city, period) {
       const from = `${period.year}-${pad(period.month)}-01`;
       const to = `${period.year}-${pad(period.month)}-${pad(lastDayOfMonth(period.year, period.month))}`;
-      const url = `/api/graph-data?city=${encodeURIComponent(city)}&date_from=${from}&date_to=${to}`;
+      return `city=${encodeURIComponent(city)}&date_from=${from}&date_to=${to}`;
+    }
+
+    function dayOf(dateStr) {
+      return parseInt(dateStr.split('-')[2], 10);
+    }
+
+    async function fetchPeriod(city, plant, period) {
+      const url = `/api/graph-data?${periodQuery(city, period)}`;
       const resp = await fetch(url);
       if (!resp.ok) return {};
       const rows = await resp.json();
       const byDay = {};
       for (const r of rows) {
         if (r.plant !== plant) continue;
-        const day = parseInt(r.date.split('-')[2], 10);
-        byDay[day] = r.concentration;
+        byDay[dayOf(r.date)] = r.concentration;
       }
       return byDay;
     }
 
     async function fetchPeriodRain(city, period) {
-      const from = `${period.year}-${pad(period.month)}-01`;
-      const to = `${period.year}-${pad(period.month)}-${pad(lastDayOfMonth(period.year, period.month))}`;
-      const url = `/api/rain-data?city=${encodeURIComponent(city)}&date_from=${from}&date_to=${to}`;
-      const resp = await fetch(url);
+      const resp = await fetch(`/api/rain-data?${periodQuery(city, period)}`);
       if (!resp.ok) return {};
       const byStation = {};
       for (const r of await resp.json()) {
-        const day = parseInt(r.date.split('-')[2], 10);
         if (!byStation[r.station]) byStation[r.station] = {};
-        byStation[r.station][day] = r.mm;
+        byStation[r.station][dayOf(r.date)] = r.mm;
       }
       return byStation;
     }
 
-    function renderChart(datasets, rainDatasets) {
+    async function fetchPeriodTemp(city, period) {
+      const resp = await fetch(`/api/temp-data?${periodQuery(city, period)}`);
+      if (!resp.ok) return {};
+      const payload = await resp.json();
+      const bySeries = {};
+      for (const kind of ['air', 'sea']) {
+        const byDay = {};
+        for (const r of payload[kind] || []) byDay[dayOf(r.date)] = r.temp;
+        if (Object.keys(byDay).length) bySeries[kind] = byDay;
+      }
+      return bySeries;
+    }
+
+    function renderChart(datasets, rainDatasets, tempDatasets) {
       const chartWrapper = document.getElementById('chart-wrapper');
       const canvas = document.getElementById('compare-chart');
       const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -209,6 +228,24 @@
         };
       });
 
+      const tempDs = (tempDatasets || []).map(ds => {
+        const color = TEMP_COLORS[ds.kind];
+        return {
+          label: ds.label,
+          data: days.map(d => ds.byDay[d] ?? null),
+          borderColor: color,
+          backgroundColor: 'transparent',
+          borderDash: ds.kind === 'sea' ? [2, 3] : [6, 4],
+          tension: 0.35,
+          spanGaps: true,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          yAxisID: 'y2',
+          order: 0
+        };
+      });
+
       const scales = {
         y: {
           beginAtZero: true,
@@ -234,11 +271,20 @@
         };
       }
 
+      if (tempDs.length) {
+        scales.y2 = {
+          position: 'right',
+          title: { display: true, text: 'Temperatura (°C)', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#e67e22' },
+          grid: { drawOnChartArea: false },
+          ticks: { font: { family: 'Outfit', size: 11 }, color: '#e67e22' }
+        };
+      }
+
       chartWrapper.style.display = '';
       if (chart) chart.destroy();
       chart = new Chart(canvas, {
         type: 'line',
-        data: { labels: days, datasets: pollenDs.concat(rainDs) },
+        data: { labels: days, datasets: pollenDs.concat(rainDs, tempDs) },
         options: {
           responsive: true,
           interaction: { mode: 'index', intersect: false },
@@ -305,8 +351,23 @@
           }
         }
 
+        const tempDatasets = [];
+        if (document.getElementById('temp-toggle').checked) {
+          for (const period of periods) {
+            const bySeries = await fetchPeriodTemp(city, period);
+            for (const [kind, byDay] of Object.entries(bySeries)) {
+              tempDatasets.push({
+                kind,
+                label: `${periodLabel(period.year, period.month)} — ${TEMP_LABELS[kind]}`,
+                byDay
+              });
+            }
+          }
+        }
+
         const hasData = datasets.some(ds => Object.keys(ds.byDay).length > 0)
-          || rainDatasets.some(ds => Object.keys(ds.byDay).length > 0);
+          || rainDatasets.some(ds => Object.keys(ds.byDay).length > 0)
+          || tempDatasets.length > 0;
         if (!hasData) {
           if (chart) { chart.destroy(); chart = null; }
           chartWrapper.style.display = 'none';
@@ -315,7 +376,7 @@
         }
 
         noDataMsg.style.display = 'none';
-        renderChart(datasets, rainDatasets);
+        renderChart(datasets, rainDatasets, tempDatasets);
 
       } catch (err) {
         errorMsg.textContent = 'Greška mreže';
@@ -343,6 +404,7 @@
 
       document.getElementById('apply-btn').addEventListener('click', () => { fetchAndRender(); });
       document.getElementById('rain-toggle').addEventListener('change', () => { fetchAndRender(); });
+      document.getElementById('temp-toggle').addEventListener('change', () => { fetchAndRender(); });
 
       await loadPlants(document.getElementById('city-select').value);
       fetchAndRender();
