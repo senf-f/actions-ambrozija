@@ -138,8 +138,10 @@ def graph_data():
     try:
         cursor = conn.cursor()
         cursor.execute(
-            'SELECT plant, date, pollen_concentration FROM pollen_data '
-            'WHERE city = ? AND date BETWEEN ? AND ? ORDER BY date ASC',
+            # Legacy rows store date as a full timestamp, so a plain string
+            # BETWEEN would drop the last day of the range.
+            'SELECT plant, date(date), pollen_concentration FROM pollen_data '
+            'WHERE city = ? AND date(date) BETWEEN ? AND ? ORDER BY date ASC',
             (city, date_from_str, date_to_str)
         )
         rows = cursor.fetchall()

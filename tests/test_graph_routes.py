@@ -126,3 +126,22 @@ class TestGraphDataApi:
         resp = client_with_data.get("/api/graph-data?city=Zagreb")
         assert resp.status_code == 200
         assert isinstance(resp.get_json(), list)
+
+    def test_timestamp_row_on_last_day_included(self, client_with_data):
+        """Rows stored as timestamps must not fall outside a range ending that day."""
+        import sqlite3
+
+        import app.routes as routes_module
+
+        conn = sqlite3.connect(routes_module.DB_PATH)
+        conn.execute(
+            "INSERT INTO pollen_data (city, plant, pollen_concentration, date) VALUES (?, ?, ?, ?)",
+            ("Zagreb", "Breza (Betula sp.)", "5.0", "2026-03-31 14:55:17.049135"),
+        )
+        conn.commit()
+        conn.close()
+
+        resp = client_with_data.get(
+            "/api/graph-data?city=Zagreb&date_from=2026-03-01&date_to=2026-03-31"
+        )
+        assert "2026-03-31" in [r["date"] for r in resp.get_json()]

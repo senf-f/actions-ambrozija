@@ -50,7 +50,7 @@ def main():
                 print(f"{city}: {key}: {value}")
                 save_to_csv(city=city, plant=key, pollen_data=value)
                 db_handler.insert_into_db(conn=conn, city=city, plant=key, pollen_concentration=value,
-                                          date=datetime.datetime.today())
+                                          date=datetime.date.today().isoformat())
 
     scraper.close_driver(driver)
     conn.close()
