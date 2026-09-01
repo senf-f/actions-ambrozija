@@ -11,6 +11,13 @@ SAMPLE = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
+def test_parse_rain_decodes_utf8_bytes():
+    """The feed is fetched as bytes; diacritics must survive the parse."""
+    raw = SAMPLE.replace("<ime>Zagreb-Maksimir</ime>", "<ime>Zagreb-Grič</ime>").encode("utf-8")
+    _, rows = parse_rain(raw)
+    assert ("Zagreb-Grič", "Zagreb", 1.3) in rows
+
+
 def test_parse_rain_filters_and_parses():
     date, rows = parse_rain(SAMPLE)
     assert date == "2026-08-26"

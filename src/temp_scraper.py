@@ -74,7 +74,9 @@ def parse_sea(xml_text, hour=SEA_HOUR):
 def _get(url):
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
-    return resp.text
+    # bytes, not resp.text: DHMZ sends no charset, so requests would
+    # decode the UTF-8 feed as ISO-8859-1 and mangle station names.
+    return resp.content
 
 
 def main():
