@@ -37,7 +37,7 @@ python main.py
 python run.py
 ```
 
-Python 3.9. Dependencies in `requirements.txt`. Requires Chrome/Chromium for Selenium (runs headless).
+Python 3.13. Dependencies in `requirements.txt`. Requires Chrome/Chromium for Selenium (runs headless).
 
 ## Environment Variables
 
