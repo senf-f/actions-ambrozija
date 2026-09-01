@@ -10,8 +10,8 @@ Pollen data scraper for Croatian cities. Scrapes daily pollen concentration data
 
 There are two scraper implementations:
 
-- **Old scraper** (`main.py` at root): Monolithic script using Selenium + CSV output. Runs via `scraping_run_old.yml` (daily at 9:30 UTC) and `run_manually_old.yml`.
-- **New scraper** (`src/main.py`): Refactored version with separated concerns. Runs via `scraping_run.yml` (daily at 10:30 UTC) and `run_scraper_manually.yml` / `manual_run.yml`.
+- **Old scraper** (`main.py` at root): Monolithic script using Selenium + CSV output. Runs via `scraping_run_old.yml` (daily at 9:30 UTC, also manually dispatchable).
+- **New scraper** (`src/main.py`): Refactored version with separated concerns. Runs via `scraping_run.yml` (daily at 10:30 UTC) and `run_scraper_manually.yml`.
 
 New scraper modules in `src/`:
 - `scraper.py` — Selenium driver setup and pollen data extraction

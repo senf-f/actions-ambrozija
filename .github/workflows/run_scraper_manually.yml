@@ -36,9 +36,6 @@ jobs:
           TELEGRAM_API_TOKEN_STAMPAR: ${{ secrets.TELEGRAM_API_TOKEN_STAMPAR }}
         run: python src/main.py
 
-      - name: List files in the data directory
-        run: ls -R data/2025/
-
       - name: Debug git status
         run: git status
         
