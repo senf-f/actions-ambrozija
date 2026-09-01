@@ -42,11 +42,8 @@ jobs:
           git config --local user.email "mate.mrse@gmail.com"
           git config --local user.name "GitHub Action"
           git pull
-          git add -A
-          git diff-index --quiet HEAD || (git commit -a -m "updated data" --allow-empty)
-      
-      - name: Push changes
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
+          git add -f data/ db/
+          git commit -m "updated data" || echo "No changes to commit"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
