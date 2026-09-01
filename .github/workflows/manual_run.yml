@@ -21,7 +21,7 @@ jobs:
     steps:
 
       - name: checkout repo content
-        uses: actions/checkout@v2 # checkout the repository content to github runner
+        uses: actions/checkout@v7 # checkout the repository content to github runner
 
       - name: Print working directory
         run: pwd  # Print current working directory
@@ -30,7 +30,7 @@ jobs:
         run: ls -R
 
       - name: setup python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v7
         with:
           python-version: '3.9' # install the python version needed
 
