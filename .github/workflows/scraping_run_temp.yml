@@ -2,10 +2,9 @@ name: run temp_scraper.py
 
 on:
   schedule:
-    # 15:00 local time in Croatia: 13:05 UTC in CEST, 14:05 UTC in CET.
-    # Both fire; the air scrape no-ops on the run where the feed isn't at 15h.
-    - cron: '5 13 * * *'
-    - cron: '5 14 * * *'
+    # 18:05 local time in Croatia (17:05 in CET). Late enough that the air
+    # feed is past its 15h reading; whatever hour it holds gets stored.
+    - cron: '5 16 * * *'
   workflow_dispatch:
 
 jobs:

@@ -189,7 +189,7 @@ def rain_data():
 
 @app.route('/api/temp-data')
 def temp_data():
-    """Air temperature (15h) and sea temperature (08h) for a city.
+    """Air temperature (afternoon reading) and sea temperature (08h) for a city.
 
     Sea stations are named after the city itself, so the same name filters both.
     A city may legitimately have one series and not the other.

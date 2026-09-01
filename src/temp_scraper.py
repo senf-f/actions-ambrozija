@@ -1,4 +1,4 @@
-"""Scrape air temperature (15h) and sea temperature (08h) from DHMZ XML feeds."""
+"""Scrape air temperature (afternoon) and sea temperature (08h) from DHMZ XML feeds."""
 import datetime
 import xml.etree.ElementTree as ET
 
@@ -6,7 +6,6 @@ import requests
 
 from src import db_handler
 from src.config import (
-    AIR_HOUR,
     AIR_STATIONS,
     AIR_URL,
     SEA_HOUR,
@@ -82,13 +81,13 @@ def _get(url):
 def main():
     conn = db_handler.setup_db()
     try:
+        # The feed carries only its latest hour and runs ~1h behind, so an
+        # exact 15h match is unreliable. Store whatever the afternoon run
+        # finds; the `hour` column records which reading it actually was.
         date, hour, rows = parse_air(_get(AIR_URL))
-        if hour != AIR_HOUR:
-            print(f"[air] skipped: feed is at {hour}h, want {AIR_HOUR}h")
-        else:
-            for station, city, temp in rows:
-                db_handler.insert_into_air_temp_db(conn, station, city, temp, hour, date)
-            print(f"[air] {date} {hour}h: stored {len(rows)} station(s)")
+        for station, city, temp in rows:
+            db_handler.insert_into_air_temp_db(conn, station, city, temp, hour, date)
+        print(f"[air] {date} {hour}h: stored {len(rows)} station(s)")
 
         date, rows = parse_sea(_get(SEA_URL))
         for station, temp in rows:

@@ -10,7 +10,6 @@ RAIN_CITIES = ("Split", "Zagreb")
 
 # {station name as it appears in the XML feed: short city name}
 AIR_URL = "https://vrijeme.hr/hrvatska_n.xml"
-AIR_HOUR = "15"
 AIR_STATIONS = {
     "Zagreb-Maksimir": "Zagreb",
     "Split-Marjan": "Split",
