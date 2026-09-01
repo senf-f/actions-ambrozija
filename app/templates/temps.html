@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Temperature</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Temperatura zraka i mora</h1>
+      <p class="subtitle">Dnevna mjerenja DHMZ-a</p>
+      <a href="/" class="nav-link" data-icon="&#x2937;">Tablični prikaz</a>
+      <a href="/graph" class="nav-link" data-icon="&#x2937;">Graf</a>
+      <a href="/compare" class="nav-link" data-icon="&#x2937;">Usporedba</a>
+    </div>
+
+    <div class="filter-card">
+      <form id="filter-form">
+        <div class="filter-group">
+          <label for="city-select">Grad</label>
+          <select id="city-select">
+            {% for city in cities %}
+            <option value="{{ city }}" {% if city == 'Split' %}selected{% endif %}>{{ city }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="date-from">Od</label>
+          <input type="date" id="date-from">
+        </div>
+
+        <div class="filter-group">
+          <label for="date-to">Do</label>
+          <input type="date" id="date-to">
+        </div>
+
+        <button type="button" id="apply-btn" class="btn">Primijeni</button>
+      </form>
+    </div>
+
+    <p id="error-msg" class="error-msg" style="display:none"></p>
+    <p id="no-data-msg" class="no-data-msg" style="display:none">Nema podataka za ovaj odabir.</p>
+
+    <div id="chart-wrapper" class="chart-card" style="display:none">
+      <canvas id="temp-chart"></canvas>
+    </div>
+
+    <div class="footer">
+      Izvor: DHMZ &mdash;
+      <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a>
+    </div>
+  </div>
+
+  <script>
+    const SERIES = [
+      { kind: 'air', label: 'zrak', color: '#e67e22' },
+      { kind: 'sea', label: 'more (8h)', color: '#0891b2' }
+    ];
+
+    let chart = null;
+
+    function formatDate(d) {
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${d.getFullYear()}-${m}-${day}`;
+    }
+
+    function renderChart(payload) {
+      const dates = [...new Set(
+        SERIES.flatMap(s => (payload[s.kind] || []).map(r => r.date))
+      )].sort();
+
+      const datasets = SERIES.map(s => {
+        const byDate = {};
+        for (const r of payload[s.kind] || []) byDate[r.date] = r.temp;
+        return {
+          label: s.label,
+          data: dates.map(d => byDate[d] ?? null),
+          borderColor: s.color,
+          backgroundColor: s.color + '18',
+          tension: 0.35,
+          spanGaps: true,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2.5
+        };
+      }).filter(ds => ds.data.some(v => v !== null));
+
+      document.getElementById('chart-wrapper').style.display = '';
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById('temp-chart'), {
+        type: 'line',
+        data: { labels: dates, datasets },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { labels: { font: { family: 'Outfit', size: 12 }, color: '#6b6b6b' } },
+            tooltip: {
+              backgroundColor: '#1a3a2a',
+              titleFont: { family: 'Outfit', weight: '500' },
+              bodyFont: { family: 'Outfit' },
+              cornerRadius: 8,
+              padding: 12,
+              callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} °C` }
+            }
+          },
+          scales: {
+            y: {
+              title: { display: true, text: 'Temperatura (°C)', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+              grid: { color: 'rgba(0,0,0,0.04)' },
+              ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+            },
+            x: {
+              type: 'category',
+              title: { display: true, text: 'Datum', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+              grid: { display: false },
+              ticks: {
+                font: { family: 'Outfit', size: 11 },
+                color: '#6b6b6b',
+                callback: function(val) {
+                  const [, m, d] = this.getLabelForValue(val).split('-');
+                  return `${parseInt(d, 10)}.${parseInt(m, 10)}.`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function fetchAndRender() {
+      const errorMsg = document.getElementById('error-msg');
+      const noDataMsg = document.getElementById('no-data-msg');
+      const chartWrapper = document.getElementById('chart-wrapper');
+
+      const city = document.getElementById('city-select').value;
+      const dateFrom = document.getElementById('date-from').value;
+      const dateTo = document.getElementById('date-to').value;
+
+      if (dateFrom > dateTo) {
+        errorMsg.textContent = 'Početni datum ne smije biti nakon završnog';
+        errorMsg.style.display = '';
+        return;
+      }
+
+      try {
+        const resp = await fetch(
+          `/api/temp-data?city=${encodeURIComponent(city)}&date_from=${dateFrom}&date_to=${dateTo}`
+        );
+        if (!resp.ok) {
+          let msg = 'Zahtjev nije uspio';
+          try { msg = (await resp.json()).error || msg; } catch (_) {}
+          errorMsg.textContent = msg;
+          errorMsg.style.display = '';
+          chartWrapper.style.display = 'none';
+          noDataMsg.style.display = 'none';
+          return;
+        }
+
+        const payload = await resp.json();
+        errorMsg.style.display = 'none';
+
+        if (!payload.air.length && !payload.sea.length) {
+          if (chart) { chart.destroy(); chart = null; }
+          chartWrapper.style.display = 'none';
+          noDataMsg.style.display = '';
+          return;
+        }
+
+        noDataMsg.style.display = 'none';
+        renderChart(payload);
+      } catch (err) {
+        errorMsg.textContent = 'Greška mreže';
+        errorMsg.style.display = '';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      document.getElementById('date-from').value =
+        formatDate(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+      document.getElementById('date-to').value = formatDate(today);
+
+      document.getElementById('apply-btn').addEventListener('click', fetchAndRender);
+      document.getElementById('city-select').addEventListener('change', fetchAndRender);
+      fetchAndRender();
+    });
+  </script>
+</body>
+</html>

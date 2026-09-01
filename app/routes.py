@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import jsonify, render_template, request
 
 from app import app
-from src.config import DB_PATH
+from src.config import AIR_STATIONS, DB_PATH, SEA_STATIONS
 
 
 def _date_range():
@@ -102,6 +102,15 @@ def compare():
     finally:
         conn.close()
     return render_template('compare.html', cities=cities)
+
+
+@app.route('/temps')
+def temps():
+    """Air vs sea temperature. Cities come from config rather than the tables,
+    so a station shows up here before its first reading lands.
+    """
+    cities = sorted(set(AIR_STATIONS.values()) | set(SEA_STATIONS))
+    return render_template('temps.html', cities=cities)
 
 
 @app.route('/api/plants')
