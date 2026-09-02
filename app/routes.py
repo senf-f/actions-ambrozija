@@ -1,10 +1,19 @@
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
+import requests
 from flask import jsonify, render_template, request
 
 from app import app
-from src.config import AIR_STATIONS, DB_PATH, SEA_STATIONS
+from src.config import (
+    AIR_STATIONS,
+    CAMS_FORECAST_DAYS,
+    CAMS_PAST_DAYS,
+    CAMS_URL,
+    CITY_COORDS,
+    DB_PATH,
+    SEA_STATIONS,
+)
 
 
 def _date_range():
@@ -194,6 +203,64 @@ def rain_data():
         conn.close()
 
     return jsonify([{'station': s, 'date': d, 'mm': mm} for s, d, mm in rows])
+
+
+@app.route('/api/cams-data')
+def cams_data():
+    """Daily maximum modelled ragweed pollen (grains/m3) for a city.
+
+    CAMS is a model, not a trap count, and its unit is not the stampar.hr
+    scale — the two belong on separate axes.
+
+    Fetched live instead of stored: the upstream window (92 days back plus a
+    4-day forecast) already covers every range this graph offers, so there is
+    nothing to scrape or commit.
+    ponytail: no archive kept, so a range older than the window returns []. Add
+    a daily scraper if long history is wanted.
+    """
+    city = request.args.get('city', '').strip()
+    if not city:
+        return jsonify({'error': 'city is required'}), 400
+
+    date_from_str, date_to_str, err = _date_range()
+    if err:
+        return jsonify(err[0]), err[1]
+
+    coords = CITY_COORDS.get(city)
+    if not coords:
+        return jsonify([])
+
+    today = date.today()
+    start = max(datetime.strptime(date_from_str, '%Y-%m-%d').date(),
+                today - timedelta(days=CAMS_PAST_DAYS))
+    end = min(datetime.strptime(date_to_str, '%Y-%m-%d').date(),
+              today + timedelta(days=CAMS_FORECAST_DAYS))
+    if start > end:
+        return jsonify([])
+
+    lat, lon = coords
+    try:
+        resp = requests.get(CAMS_URL, timeout=15, params={
+            'latitude': lat,
+            'longitude': lon,
+            'hourly': 'ragweed_pollen',
+            'start_date': start.isoformat(),
+            'end_date': end.isoformat(),
+            'timezone': 'Europe/Zagreb',
+        })
+        resp.raise_for_status()
+        hourly = resp.json().get('hourly', {})
+    except (requests.RequestException, ValueError):
+        return jsonify({'error': 'CAMS upstream unavailable'}), 502
+
+    daily = {}
+    for stamp, value in zip(hourly.get('time', []), hourly.get('ragweed_pollen', [])):
+        if value is None:
+            continue
+        day = stamp[:10]
+        daily[day] = max(value, daily.get(day, value))
+
+    return jsonify([{'date': d, 'grains': daily[d]} for d in sorted(daily)])
 
 
 @app.route('/api/temp-data')

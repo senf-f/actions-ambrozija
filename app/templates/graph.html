@@ -68,6 +68,10 @@
       <label><input type="checkbox" id="rain-toggle"> Prikaži oborine (DHMZ)</label>
     </div>
 
+    <div id="cams-toggle-wrap" class="rain-toggle" style="display:none">
+      <label><input type="checkbox" id="cams-toggle"> Prikaži ambroziju &mdash; model (CAMS)</label>
+    </div>
+
     <div id="chart-wrapper" class="chart-card" style="display:none">
       <canvas id="pollen-chart"></canvas>
     </div>
@@ -75,7 +79,9 @@
     <div class="footer">
       Izvor peludi: <a href="https://stampar.hr/hr" target="_blank" rel="noopener">stampar.hr</a><br>
       Izvor oborina: DHMZ &mdash;
-      <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a>
+      <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a><br>
+      Model ambrozije: CAMS ENSEMBLE (<a href="https://atmosphere.copernicus.eu" target="_blank" rel="noopener">Copernicus</a>)
+      preko <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
     </div>
   </div>
 
@@ -87,11 +93,14 @@
 
     const RAIN_COLORS = ['#2980b9', '#5dade2', '#85c1e9'];
 
+    const CAMS_COLOR = '#7c3aed';
+
     let chart = null;
     let currentData = null;
     let plantColors = {};
     let activePlants = new Set();
     let rainByStation = {};
+    let camsByDate = {};
 
     function formatDate(d) {
       const y = d.getFullYear();
@@ -190,6 +199,25 @@
         });
       }
 
+      const showCams = document.getElementById('cams-toggle').checked;
+      const camsDates = Object.keys(camsByDate);
+      if (showCams && camsDates.length > 0) {
+        datasets.push({
+          label: 'Ambrozija — CAMS model',
+          data: dates.map(d => camsByDate[d] ?? null),
+          borderColor: CAMS_COLOR,
+          backgroundColor: 'transparent',
+          borderDash: [6, 4],
+          tension: 0.35,
+          spanGaps: true,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          yAxisID: 'y2',
+          order: 0
+        });
+      }
+
       const scales = {
         y: {
           beginAtZero: true,
@@ -216,6 +244,16 @@
           title: { display: true, text: 'Oborine (mm)', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#2980b9' },
           grid: { drawOnChartArea: false },
           ticks: { font: { family: 'Outfit', size: 11 }, color: '#2980b9' }
+        };
+      }
+
+      if (showCams && camsDates.length > 0) {
+        scales.y2 = {
+          beginAtZero: true,
+          position: 'right',
+          title: { display: true, text: 'Ambrozija CAMS (zrnaca/m³)', font: { family: 'Outfit', size: 12, weight: '500' }, color: CAMS_COLOR },
+          grid: { drawOnChartArea: false },
+          ticks: { font: { family: 'Outfit', size: 11 }, color: CAMS_COLOR }
         };
       }
 
@@ -314,8 +352,22 @@
         document.getElementById('rain-toggle-wrap').style.display =
           Object.keys(rainByStation).length ? '' : 'none';
 
+        camsByDate = {};
+        try {
+          const camsUrl = `/api/cams-data?city=${encodeURIComponent(city)}&date_from=${dateFrom}&date_to=${dateTo}`;
+          const camsResp = await fetch(camsUrl);
+          if (camsResp.ok) {
+            for (const r of await camsResp.json()) camsByDate[r.date] = r.grains;
+          }
+        } catch (_) { /* CAMS overlay is optional */ }
+
+        document.getElementById('cams-toggle-wrap').style.display =
+          Object.keys(camsByDate).length ? '' : 'none';
+
         const rainDates = Object.values(rainByStation).flatMap(m => Object.keys(m));
-        const dates = [...new Set([...rows.map(r => r.date), ...rainDates])].sort();
+        const dates = [...new Set([
+          ...rows.map(r => r.date), ...rainDates, ...Object.keys(camsByDate)
+        ])].sort();
 
         const plants = Object.keys(byPlant);
         plants.forEach((plant, i) => {
@@ -392,6 +444,7 @@
       });
 
       document.getElementById('rain-toggle').addEventListener('change', renderChart);
+      document.getElementById('cams-toggle').addEventListener('change', renderChart);
 
       setRange(0);
       document.getElementById('apply-btn').addEventListener('click', () => { fetchAndRender(); });
