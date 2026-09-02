@@ -2,9 +2,8 @@
 import datetime
 import xml.etree.ElementTree as ET
 
-import requests
-
 from src import db_handler
+from src.dhmz import fetch_xml
 from src.config import (
     AIR_STATIONS,
     SEA_HOUR,
@@ -71,25 +70,17 @@ def parse_sea(xml_text, hour=SEA_HOUR):
     return iso_date, rows
 
 
-def _get(url):
-    resp = requests.get(url, timeout=30)
-    resp.raise_for_status()
-    # bytes, not resp.text: DHMZ sends no charset, so requests would
-    # decode the UTF-8 feed as ISO-8859-1 and mangle station names.
-    return resp.content
-
-
 def main():
     conn = db_handler.setup_db()
     try:
         # A daily maximum does not depend on when we run, so a late run is
         # harmless as long as the row is filed under the feed's own date.
-        date, termin, rows = parse_tmax(_get(TMAX_URL))
+        date, termin, rows = parse_tmax(fetch_xml(TMAX_URL))
         for station, city, temp in rows:
             db_handler.insert_into_air_temp_db(conn, station, city, temp, termin, date)
         print(f"[air max] {date} (termin {termin}h): stored {len(rows)} station(s)")
 
-        date, rows = parse_sea(_get(SEA_URL))
+        date, rows = parse_sea(fetch_xml(SEA_URL))
         for station, temp in rows:
             db_handler.insert_into_sea_temp_db(conn, station, temp, SEA_HOUR, date)
         print(f"[sea] {date} {SEA_HOUR}h: stored {len(rows)} station(s)")

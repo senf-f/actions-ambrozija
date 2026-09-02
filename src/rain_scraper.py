@@ -1,10 +1,9 @@
 import datetime
 import xml.etree.ElementTree as ET
 
-import requests
-
 from src import db_handler
 from src.config import RAIN_CITIES, RAIN_URL
+from src.dhmz import fetch_xml
 
 
 def parse_rain(xml_text):
@@ -29,11 +28,7 @@ def parse_rain(xml_text):
 def main():
     conn = db_handler.setup_db()
     try:
-        resp = requests.get(RAIN_URL, timeout=30)
-        resp.raise_for_status()
-        # bytes, not resp.text: DHMZ sends no charset, so requests would
-        # decode the UTF-8 feed as ISO-8859-1 and mangle station names.
-        date, rows = parse_rain(resp.content)
+        date, rows = parse_rain(fetch_xml(RAIN_URL))
         for station, city, mm in rows:
             db_handler.insert_into_rain_db(conn, station, city, mm, date)
         print(f"[rain] {date}: stored {len(rows)} station(s)")
