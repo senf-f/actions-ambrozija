@@ -8,14 +8,18 @@ DB_PATH = os.path.join(BASE_DIR, "db", "pollen_data.db")
 RAIN_URL = "https://vrijeme.hr/oborina.xml"
 RAIN_CITIES = ("Split", "Zagreb")
 
+# Daily maximum air temperature. Covers the climatological day ending at 18 UTC
+# (termin 19 in CET, 20 in CEST), is published that evening and then served
+# unchanged all of the following day.
+TMAX_URL = "https://vrijeme.hr/tx.xml"
+
 # {station name as it appears in the XML feed: short city name}
-AIR_URL = "https://vrijeme.hr/hrvatska_n.xml"
 AIR_STATIONS = {
     "Zagreb-Maksimir": "Zagreb",
-    "Split-Marjan": "Split",
+    "Split": "Split",
     "Dubrovnik": "Dubrovnik",
-    "RC Osijek-Čepin": "Osijek",
-    "Pula-aerodrom": "Pula",
+    "Osijek": "Osijek",
+    "Pula": "Pula",
     "Rijeka": "Rijeka",
 }
 

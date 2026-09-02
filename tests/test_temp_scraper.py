@@ -1,13 +1,17 @@
-from src.temp_scraper import parse_air, parse_sea
+from src.temp_scraper import parse_tmax, parse_sea
 
-AIR = """<?xml version="1.0" encoding="UTF-8"?>
-<Hrvatska>
-<DatumTermin><Datum>31.08.2026</Datum><Termin>15</Termin></DatumTermin>
-<Grad><GradIme>Bjelovar</GradIme><Podatci><Temp> 29.0</Temp></Podatci></Grad>
-<Grad><GradIme>Zagreb-Maksimir</GradIme><Podatci><Temp> 30.1</Temp></Podatci></Grad>
-<Grad><GradIme>Pula-aerodrom</GradIme><Podatci><Temp>27.4</Temp></Podatci></Grad>
-<Grad><GradIme>Rijeka</GradIme><Podatci><Temp>-</Temp></Podatci></Grad>
-</Hrvatska>
+TMAX = """<?xml version="1.0" encoding="UTF-8"?>
+<maksimalnatemperatura>
+  <datumtermin>
+    <datum>31.08.2026</datum>
+    <termin>20</termin>
+  </datumtermin>
+  <grad><ime>Bjelovar</ime><tempmax>29.0</tempmax></grad>
+  <grad><ime>Zagreb-Maksimir</ime><tempmax> 30.1</tempmax></grad>
+  <grad><ime>Pula-aerodrom</ime><tempmax>27.4</tempmax></grad>
+  <grad><ime>Pula</ime><tempmax>28.2</tempmax></grad>
+  <grad><ime>Rijeka</ime><tempmax>-</tempmax></grad>
+</maksimalnatemperatura>
 """
 
 SEA = """<?xml version="1.0" encoding="UTF-8"?>
@@ -25,16 +29,17 @@ SEA = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
-def test_parse_air_filters_targets_and_skips_missing():
-    date, hour, rows = parse_air(AIR)
-    assert (date, hour) == ("2026-08-31", "15")
-    # Bjelovar not a target; Rijeka has no reading
-    assert rows == [("Zagreb-Maksimir", "Zagreb", 30.1), ("Pula-aerodrom", "Pula", 27.4)]
+def test_parse_tmax_filters_targets_and_skips_missing():
+    date, termin, rows = parse_tmax(TMAX)
+    assert (date, termin) == ("2026-08-31", "20")
+    # Bjelovar and Pula-aerodrom are not targets; Rijeka has no reading
+    assert rows == [("Zagreb-Maksimir", "Zagreb", 30.1), ("Pula", "Pula", 28.2)]
 
 
-def test_parse_air_reports_wrong_hour():
-    _, hour, _ = parse_air(AIR.replace("<Termin>15</Termin>", "<Termin>11</Termin>"))
-    assert hour == "11"
+def test_parse_tmax_date_comes_from_feed_not_today():
+    """The feed normally serves yesterday's maxima, so its own date must win."""
+    date, _, _ = parse_tmax(TMAX.replace("31.08.2026", "01.09.2026"))
+    assert date == "2026-09-01"
 
 
 def test_parse_sea_picks_08_column():
