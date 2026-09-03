@@ -49,6 +49,7 @@
     <div class="rain-toggle">
       <label><input type="checkbox" id="rain-toggle"> Prikaži oborine (DHMZ)</label>
       <label><input type="checkbox" id="temp-toggle"> Prikaži temperature (DHMZ)</label>
+      <label><input type="checkbox" id="cams-toggle"> Prikaži ambroziju &mdash; model (CAMS)</label>
     </div>
 
     <div id="chart-wrapper" class="chart-card" style="display:none">
@@ -58,7 +59,9 @@
     <div class="footer">
       Izvor peludi: <a href="https://stampar.hr/hr" target="_blank" rel="noopener">stampar.hr</a><br>
       Izvor oborina i temperatura: DHMZ &mdash;
-      <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a>
+      <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a><br>
+      Model ambrozije: CAMS ENSEMBLE (<a href="https://atmosphere.copernicus.eu" target="_blank" rel="noopener">Copernicus</a>)
+      preko <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> &mdash; samo zadnja ~3 mjeseca
     </div>
   </div>
 
@@ -74,6 +77,7 @@
     const RAIN_COLORS = ['#2980b9', '#5dade2', '#85c1e9'];
     const TEMP_COLORS = { air: '#e67e22', sea: '#0891b2' };
     const TEMP_LABELS = { air: 'maks. zrak', sea: 'more 8h' };
+    const CAMS_COLOR = '#7c3aed';
 
     let chart = null;
 
@@ -194,7 +198,15 @@
       return bySeries;
     }
 
-    function renderChart(datasets, rainDatasets, tempDatasets) {
+    async function fetchPeriodCams(city, period) {
+      const resp = await fetch(`/api/cams-data?${periodQuery(city, period)}`);
+      if (!resp.ok) return {};
+      const byDay = {};
+      for (const r of await resp.json()) byDay[dayOf(r.date)] = r.grains;
+      return byDay;
+    }
+
+    function renderChart(datasets, rainDatasets, tempDatasets, camsDatasets) {
       const chartWrapper = document.getElementById('chart-wrapper');
       const canvas = document.getElementById('compare-chart');
       const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -247,6 +259,21 @@
         };
       });
 
+      const camsDs = (camsDatasets || []).map((ds, i) => ({
+        label: ds.label,
+        data: days.map(d => ds.byDay[d] ?? null),
+        borderColor: CAMS_COLOR,
+        backgroundColor: 'transparent',
+        borderDash: [6, 4 + i * 4],
+        tension: 0.35,
+        spanGaps: true,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+        yAxisID: 'y3',
+        order: 0
+      }));
+
       const scales = {
         y: {
           beginAtZero: true,
@@ -281,11 +308,21 @@
         };
       }
 
+      if (camsDs.length) {
+        scales.y3 = {
+          beginAtZero: true,
+          position: 'right',
+          title: { display: true, text: 'Ambrozija CAMS (zrnaca/m³)', font: { family: 'Outfit', size: 12, weight: '500' }, color: CAMS_COLOR },
+          grid: { drawOnChartArea: false },
+          ticks: { font: { family: 'Outfit', size: 11 }, color: CAMS_COLOR }
+        };
+      }
+
       chartWrapper.style.display = '';
       if (chart) chart.destroy();
       chart = new Chart(canvas, {
         type: 'line',
-        data: { labels: days, datasets: pollenDs.concat(rainDs, tempDs) },
+        data: { labels: days, datasets: pollenDs.concat(rainDs, tempDs, camsDs) },
         options: {
           responsive: true,
           interaction: { mode: 'index', intersect: false },
@@ -366,9 +403,21 @@
           }
         }
 
+        const camsDatasets = [];
+        if (document.getElementById('cams-toggle').checked) {
+          for (const period of periods) {
+            const byDay = await fetchPeriodCams(city, period);
+            // CAMS only serves the last ~92 days, so older periods come back empty.
+            if (Object.keys(byDay).length) {
+              camsDatasets.push({ label: `${periodLabel(period.year, period.month)} — CAMS model`, byDay });
+            }
+          }
+        }
+
         const hasData = datasets.some(ds => Object.keys(ds.byDay).length > 0)
           || rainDatasets.some(ds => Object.keys(ds.byDay).length > 0)
-          || tempDatasets.length > 0;
+          || tempDatasets.length > 0
+          || camsDatasets.length > 0;
         if (!hasData) {
           if (chart) { chart.destroy(); chart = null; }
           chartWrapper.style.display = 'none';
@@ -377,7 +426,7 @@
         }
 
         noDataMsg.style.display = 'none';
-        renderChart(datasets, rainDatasets, tempDatasets);
+        renderChart(datasets, rainDatasets, tempDatasets, camsDatasets);
 
       } catch (err) {
         errorMsg.textContent = 'Greška mreže';
@@ -406,6 +455,7 @@
       document.getElementById('apply-btn').addEventListener('click', () => { fetchAndRender(); });
       document.getElementById('rain-toggle').addEventListener('change', () => { fetchAndRender(); });
       document.getElementById('temp-toggle').addEventListener('change', () => { fetchAndRender(); });
+      document.getElementById('cams-toggle').addEventListener('change', () => { fetchAndRender(); });
 
       await loadPlants(document.getElementById('city-select').value);
       fetchAndRender();
