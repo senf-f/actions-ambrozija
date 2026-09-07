@@ -26,10 +26,15 @@
           <select id="plant-select"></select>
         </div>
 
+        <div class="filter-group">
+          <label for="month-select">Mjesec</label>
+          <select id="month-select"></select>
+        </div>
+
         <div class="filter-group filter-group-wide">
-          <label>Razdoblja (mjeseci)</label>
+          <label>Godine</label>
           <div id="periods" class="periods"></div>
-          <button type="button" id="add-period" class="plant-action-btn">+ Dodaj razdoblje</button>
+          <button type="button" id="add-period" class="plant-action-btn">+ Dodaj godinu</button>
         </div>
 
         <button type="button" id="apply-btn" class="btn">Primijeni</button>
@@ -76,19 +81,9 @@
       return `${MONTHS_HR[month - 1]} ${year}`;
     }
 
-    function buildPeriodRow(year, month) {
+    function buildPeriodRow(year) {
       const row = document.createElement('div');
       row.className = 'period-row';
-
-      const monthSel = document.createElement('select');
-      monthSel.className = 'period-month';
-      MONTHS_HR.forEach((name, i) => {
-        const opt = document.createElement('option');
-        opt.value = String(i + 1);
-        opt.textContent = name;
-        if (i + 1 === month) opt.selected = true;
-        monthSel.appendChild(opt);
-      });
 
       const yearInput = document.createElement('input');
       yearInput.type = 'number';
@@ -108,17 +103,18 @@
         }
       });
 
-      row.appendChild(monthSel);
       row.appendChild(yearInput);
       row.appendChild(removeBtn);
       return row;
     }
 
     function readPeriods() {
-      return [...document.querySelectorAll('.period-row')].map(row => ({
-        month: parseInt(row.querySelector('.period-month').value, 10),
-        year: parseInt(row.querySelector('.period-year').value, 10)
-      })).filter(p => Number.isInteger(p.month) && Number.isInteger(p.year));
+      // One month for every series: the same weeks of the year are what makes
+      // two pollen curves comparable at all.
+      const month = parseInt(document.getElementById('month-select').value, 10);
+      return [...document.querySelectorAll('.period-year')]
+        .map(input => ({ month, year: parseInt(input.value, 10) }))
+        .filter(p => Number.isInteger(p.month) && Number.isInteger(p.year));
     }
 
     async function loadPlants(city) {
@@ -411,11 +407,23 @@
       const curYear = now.getFullYear();
       const curMonth = now.getMonth() + 1;
 
-      periodsEl.appendChild(buildPeriodRow(curYear, curMonth));
-      periodsEl.appendChild(buildPeriodRow(curYear - 1, curMonth));
+      const monthSel = document.getElementById('month-select');
+      MONTHS_HR.forEach((name, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i + 1);
+        opt.textContent = name;
+        if (i + 1 === curMonth) opt.selected = true;
+        monthSel.appendChild(opt);
+      });
+      monthSel.addEventListener('change', () => { fetchAndRender(); });
+
+      periodsEl.appendChild(buildPeriodRow(curYear));
+      periodsEl.appendChild(buildPeriodRow(curYear - 1));
 
       document.getElementById('add-period').addEventListener('click', () => {
-        periodsEl.appendChild(buildPeriodRow(curYear, curMonth));
+        // Walk further back instead of repeating a year already on the chart.
+        const years = readPeriods().map(p => p.year);
+        periodsEl.appendChild(buildPeriodRow(Math.min(curYear, ...years) - 1));
       });
 
       document.getElementById('city-select').addEventListener('change', async () => {
