@@ -3,8 +3,8 @@ import datetime
 import os
 from time import perf_counter
 
-from src import db_handler, scraper
-from src.biljke import BILJKA_LOOKUP
+from src import db_handler, scraper, telegram
+from src.biljke import BILJKA_LOOKUP, Biljka
 from src.config import BASE_DIR
 
 
@@ -34,6 +34,15 @@ def save_to_csv(city, plant, pollen_data):
         writer.writerow([pollen_data, now.strftime("%Y-%m-%d %H:%M:%S")])
 
 
+def unknown_plants(scraped_names):
+    """Scraped plant names the Biljka enum does not know yet.
+
+    The enum drives CSV file naming, so a species stampar.hr starts publishing
+    is stored under its full Croatian name until someone adds it.
+    """
+    return sorted(set(scraped_names) - {biljka.value for biljka in Biljka})
+
+
 def main():
     start = perf_counter()
     conn = db_handler.setup_db()
@@ -42,9 +51,11 @@ def main():
 
     cities = scraper.get_cities(driver)
 
+    seen_plants = set()
     for city in cities:
         pollen_data = scraper.get_pollen_data(driver, city)
         if pollen_data:
+            seen_plants.update(pollen_data)
             # Save to CSV and DB
             for key, value in pollen_data.items():
                 print(f"{city}: {key}: {value}")
@@ -54,6 +65,10 @@ def main():
 
     scraper.close_driver(driver)
     conn.close()
+
+    nove = unknown_plants(seen_plants)
+    if nove:
+        telegram.send(f"Nove biljke: {', '.join(nove)}")
 
     print(f"Execution time: {perf_counter() - start} seconds.")
 
