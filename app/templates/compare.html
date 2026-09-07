@@ -26,10 +26,18 @@
           <select id="plant-select"></select>
         </div>
 
+        <div class="filter-group">
+          <label for="month-from">Mjeseci</label>
+          <div class="period-pair">
+            <select id="month-from"></select>
+            <select id="month-to"></select>
+          </div>
+        </div>
+
         <div class="filter-group filter-group-wide">
-          <label>Razdoblja &mdash; isti mjesec, do 3 godine</label>
+          <label>Godine (do 3)</label>
           <div id="periods" class="periods"></div>
-          <button type="button" id="add-period" class="plant-action-btn">+ Dodaj razdoblje</button>
+          <button type="button" id="add-period" class="plant-action-btn">+ Dodaj godinu</button>
         </div>
 
         <button type="button" id="apply-btn" class="btn">Primijeni</button>
@@ -66,46 +74,54 @@
     ];
     const TEMP_LABELS = { air: 'maks. zrak', sea: 'more 8h' };
     const YEARS = {{ years | tojson }};
-    const MAX_PERIODS = 3;
+    const MAX_YEARS = 3;
 
     let chart = null;
 
-    function lastDayOfMonth(year, month) {
+    function daysInMonth(year, month) {
       return new Date(year, month, 0).getDate(); // month is 1-based here
     }
 
-    function periodLabel(year, month) {
-      return `${MONTHS_HR[month - 1]} ${year}`;
+    function fillMonths(select, selected) {
+      MONTHS_HR.forEach((name, i) => {
+        select.add(new Option(name, String(i + 1), false, i + 1 === selected));
+      });
     }
 
-    function buildSelect(className, options, selected, onChange) {
-      const select = document.createElement('select');
-      select.className = className;
-      options.forEach(({ value, text }) => {
-        const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = text;
-        if (value === selected) opt.selected = true;
-        select.appendChild(opt);
-      });
-      select.addEventListener('change', () => {
-        if (onChange) onChange(select.value);
-        fetchAndRender();
-      });
-      return select;
+    function monthRange() {
+      return ['month-from', 'month-to']
+        .map(id => parseInt(document.getElementById(id).value, 10));
     }
 
-    function buildPeriodRow(month, year) {
+    // The compared years share one month range, so every line covers the same
+    // days and the x-axis stays comparable.
+    function axisKeys(years) {
+      const [from, to] = monthRange();
+      const keys = [];
+      for (let m = from; m <= to; m++) {
+        // Leap Februarys differ, so the axis takes the longest of the picked years.
+        const days = Math.max(...years.map(y => daysInMonth(y, m)));
+        for (let d = 1; d <= days; d++) keys.push(`${pad(m)}-${pad(d)}`);
+      }
+      return keys;
+    }
+
+    function axisLabel(key) {
+      return `${parseInt(key.slice(3), 10)}.${parseInt(key.slice(0, 2), 10)}.`;
+    }
+
+    function monthDay(dateStr) {
+      return dateStr.slice(5); // 'YYYY-MM-DD' -> 'MM-DD'
+    }
+
+    function buildYearRow(year) {
       const row = document.createElement('div');
       row.className = 'period-row';
 
-      const pair = document.createElement('div');
-      pair.className = 'period-pair';
-      pair.appendChild(buildSelect('period-month',
-        MONTHS_HR.map((name, i) => ({ value: String(i + 1), text: name })),
-        String(month), syncMonths));
-      pair.appendChild(buildSelect('period-year',
-        YEARS.map(y => ({ value: y, text: y })), String(year), syncYears));
+      const select = document.createElement('select');
+      select.className = 'period-year';
+      YEARS.forEach(y => select.add(new Option(y, y, false, y === String(year))));
+      select.addEventListener('change', () => { syncYears(); fetchAndRender(); });
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -119,15 +135,8 @@
         }
       });
 
-      row.appendChild(pair);
-      row.appendChild(removeBtn);
+      row.append(select, removeBtn);
       return row;
-    }
-
-    // The x-axis is day-of-month, so two different months on one chart compare
-    // nothing. Every row shares the month; only the year varies.
-    function syncMonths(month) {
-      document.querySelectorAll('.period-month').forEach(sel => { sel.value = month; });
     }
 
     function syncYears() {
@@ -141,15 +150,13 @@
 
     function syncControls() {
       document.getElementById('add-period').disabled =
-        document.querySelectorAll('.period-row').length >= MAX_PERIODS;
+        document.querySelectorAll('.period-row').length >= MAX_YEARS;
       syncYears();
     }
 
-    function readPeriods() {
-      return [...document.querySelectorAll('.period-row')].map(row => ({
-        month: parseInt(row.querySelector('.period-month').value, 10),
-        year: parseInt(row.querySelector('.period-year').value, 10)
-      })).filter(p => Number.isInteger(p.month) && Number.isInteger(p.year));
+    function readYears() {
+      return [...document.querySelectorAll('.period-year')]
+        .map(sel => parseInt(sel.value, 10)).filter(Number.isInteger);
     }
 
     async function loadPlants(city) {
@@ -167,71 +174,65 @@
       });
     }
 
-    function periodQuery(city, period) {
-      const from = `${period.year}-${pad(period.month)}-01`;
-      const to = `${period.year}-${pad(period.month)}-${pad(lastDayOfMonth(period.year, period.month))}`;
-      return `city=${encodeURIComponent(city)}&date_from=${from}&date_to=${to}`;
+    function periodQuery(city, year) {
+      const [from, to] = monthRange();
+      return `city=${encodeURIComponent(city)}`
+        + `&date_from=${year}-${pad(from)}-01`
+        + `&date_to=${year}-${pad(to)}-${pad(daysInMonth(year, to))}`;
     }
 
-    function dayOf(dateStr) {
-      return parseInt(dateStr.split('-')[2], 10);
-    }
-
-    async function fetchPeriod(city, plant, period) {
-      const url = `/api/graph-data?${periodQuery(city, period)}`;
-      const resp = await fetch(url);
+    async function fetchPeriod(city, plant, year) {
+      const resp = await fetch(`/api/graph-data?${periodQuery(city, year)}`);
       if (!resp.ok) return {};
-      const rows = await resp.json();
-      const byDay = {};
-      for (const r of rows) {
+      const byKey = {};
+      for (const r of await resp.json()) {
         if (r.plant !== plant) continue;
-        byDay[dayOf(r.date)] = r.concentration;
+        byKey[monthDay(r.date)] = r.concentration;
       }
-      return byDay;
+      return byKey;
     }
 
-    async function fetchPeriodRain(city, period) {
-      const resp = await fetch(`/api/rain-data?${periodQuery(city, period)}`);
+    async function fetchPeriodRain(city, year) {
+      const resp = await fetch(`/api/rain-data?${periodQuery(city, year)}`);
       if (!resp.ok) return {};
       const byStation = {};
       for (const r of await resp.json()) {
         if (!byStation[r.station]) byStation[r.station] = {};
-        byStation[r.station][dayOf(r.date)] = r.mm;
+        byStation[r.station][monthDay(r.date)] = r.mm;
       }
       return byStation;
     }
 
-    async function fetchPeriodTemp(city, period) {
-      const resp = await fetch(`/api/temp-data?${periodQuery(city, period)}`);
+    async function fetchPeriodTemp(city, year) {
+      const resp = await fetch(`/api/temp-data?${periodQuery(city, year)}`);
       if (!resp.ok) return {};
       const payload = await resp.json();
       const bySeries = {};
       for (const kind of ['air', 'sea']) {
-        const byDay = {};
-        for (const r of payload[kind] || []) byDay[dayOf(r.date)] = r.temp;
-        if (Object.keys(byDay).length) bySeries[kind] = byDay;
+        const byKey = {};
+        for (const r of payload[kind] || []) byKey[monthDay(r.date)] = r.temp;
+        if (Object.keys(byKey).length) bySeries[kind] = byKey;
       }
       return bySeries;
     }
 
-    async function fetchPeriodCams(city, period) {
-      const resp = await fetch(`/api/cams-data?${periodQuery(city, period)}`);
+    async function fetchPeriodCams(city, year) {
+      const resp = await fetch(`/api/cams-data?${periodQuery(city, year)}`);
       if (!resp.ok) return {};
-      const byDay = {};
-      for (const r of await resp.json()) byDay[dayOf(r.date)] = r.grains;
-      return byDay;
+      const byKey = {};
+      for (const r of await resp.json()) byKey[monthDay(r.date)] = r.grains;
+      return byKey;
     }
 
-    function renderChart(datasets, rainDatasets, tempDatasets, camsDatasets) {
+    function renderChart(keys, datasets, rainDatasets, tempDatasets, camsDatasets) {
       const chartWrapper = document.getElementById('chart-wrapper');
       const canvas = document.getElementById('compare-chart');
-      const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
       const pollenDs = datasets.map((ds, i) => {
         const color = PALETTE[i % PALETTE.length];
         return {
           label: ds.label,
-          data: days.map(d => ds.byDay[d] ?? null),
+          data: keys.map(k => ds.byKey[k] ?? null),
           borderColor: color,
           backgroundColor: color + '18',
           tension: 0.35,
@@ -248,7 +249,7 @@
         return {
           label: ds.label,
           type: 'bar',
-          data: days.map(d => ds.byDay[d] ?? null),
+          data: keys.map(k => ds.byKey[k] ?? null),
           backgroundColor: color + '66',
           borderColor: color,
           borderWidth: 1,
@@ -261,7 +262,7 @@
         const color = TEMP_COLORS[ds.kind];
         return {
           label: ds.label,
-          data: days.map(d => ds.byDay[d] ?? null),
+          data: keys.map(k => ds.byKey[k] ?? null),
           borderColor: color,
           backgroundColor: 'transparent',
           borderDash: ds.kind === 'sea' ? [2, 3] : [6, 4],
@@ -277,7 +278,7 @@
 
       const camsDs = (camsDatasets || []).map((ds, i) => ({
         label: ds.label,
-        data: days.map(d => ds.byDay[d] ?? null),
+        data: keys.map(k => ds.byKey[k] ?? null),
         borderColor: CAMS_COLOR,
         backgroundColor: 'transparent',
         borderDash: [6, 4 + i * 4],
@@ -298,7 +299,7 @@
         },
         x: {
           type: 'category',
-          title: { display: true, text: 'Dan u mjesecu' },
+          title: { display: true, text: 'Dan' },
           grid: { display: false }
         }
       };
@@ -336,7 +337,7 @@
       if (chart) chart.destroy();
       chart = new Chart(canvas, {
         type: 'line',
-        data: { labels: days, datasets: pollenDs.concat(rainDs, tempDs, camsDs) },
+        data: { labels: keys.map(axisLabel), datasets: pollenDs.concat(rainDs, tempDs, camsDs) },
         options: {
           responsive: true,
           maintainAspectRatio: false,
@@ -366,9 +367,9 @@
           return;
         }
 
-        const periods = readPeriods();
-        if (periods.length === 0) {
-          errorMsg.textContent = 'Dodajte barem jedno razdoblje';
+        const years = readYears();
+        if (years.length === 0) {
+          errorMsg.textContent = 'Dodajte barem jednu godinu';
           errorMsg.style.display = '';
           return;
         }
@@ -376,48 +377,43 @@
         errorMsg.style.display = 'none';
 
         const datasets = [];
-        for (const period of periods) {
-          const byDay = await fetchPeriod(city, plant, period);
-          datasets.push({ label: periodLabel(period.year, period.month), byDay });
+        for (const year of years) {
+          datasets.push({ label: String(year), byKey: await fetchPeriod(city, plant, year) });
         }
 
         const rainDatasets = [];
         if (document.getElementById('rain-toggle').checked) {
-          for (const period of periods) {
-            const byStation = await fetchPeriodRain(city, period);
-            for (const [station, byDay] of Object.entries(byStation)) {
-              rainDatasets.push({ label: `${periodLabel(period.year, period.month)} — ${station} (oborine)`, byDay });
+          for (const year of years) {
+            const byStation = await fetchPeriodRain(city, year);
+            for (const [station, byKey] of Object.entries(byStation)) {
+              rainDatasets.push({ label: `${year} — ${station} (oborine)`, byKey });
             }
           }
         }
 
         const tempDatasets = [];
         if (document.getElementById('temp-toggle').checked) {
-          for (const period of periods) {
-            const bySeries = await fetchPeriodTemp(city, period);
-            for (const [kind, byDay] of Object.entries(bySeries)) {
-              tempDatasets.push({
-                kind,
-                label: `${periodLabel(period.year, period.month)} — ${TEMP_LABELS[kind]}`,
-                byDay
-              });
+          for (const year of years) {
+            const bySeries = await fetchPeriodTemp(city, year);
+            for (const [kind, byKey] of Object.entries(bySeries)) {
+              tempDatasets.push({ kind, label: `${year} — ${TEMP_LABELS[kind]}`, byKey });
             }
           }
         }
 
         const camsDatasets = [];
         if (document.getElementById('cams-toggle').checked) {
-          for (const period of periods) {
-            const byDay = await fetchPeriodCams(city, period);
-            // CAMS only serves the last ~92 days, so older periods come back empty.
-            if (Object.keys(byDay).length) {
-              camsDatasets.push({ label: `${periodLabel(period.year, period.month)} — CAMS model`, byDay });
+          for (const year of years) {
+            const byKey = await fetchPeriodCams(city, year);
+            // CAMS only serves the last ~92 days, so older years come back empty.
+            if (Object.keys(byKey).length) {
+              camsDatasets.push({ label: `${year} — CAMS model`, byKey });
             }
           }
         }
 
-        const hasData = datasets.some(ds => Object.keys(ds.byDay).length > 0)
-          || rainDatasets.some(ds => Object.keys(ds.byDay).length > 0)
+        const hasData = datasets.some(ds => Object.keys(ds.byKey).length > 0)
+          || rainDatasets.some(ds => Object.keys(ds.byKey).length > 0)
           || tempDatasets.length > 0
           || camsDatasets.length > 0;
         if (!hasData) {
@@ -428,7 +424,7 @@
         }
 
         noDataMsg.style.display = 'none';
-        renderChart(datasets, rainDatasets, tempDatasets, camsDatasets);
+        renderChart(axisKeys(years), datasets, rainDatasets, tempDatasets, camsDatasets);
 
       } catch (err) {
         errorMsg.textContent = 'Greška mreže';
@@ -439,19 +435,31 @@
     document.addEventListener('DOMContentLoaded', async () => {
       const periodsEl = document.getElementById('periods');
       const now = new Date();
-      const curYear = now.getFullYear();
       const curMonth = now.getMonth() + 1;
 
-      periodsEl.appendChild(buildPeriodRow(curMonth, YEARS[0] ?? curYear));
-      if (YEARS[1]) periodsEl.appendChild(buildPeriodRow(curMonth, YEARS[1]));
+      const fromEl = document.getElementById('month-from');
+      const toEl = document.getElementById('month-to');
+      fillMonths(fromEl, curMonth);
+      fillMonths(toEl, curMonth);
+
+      for (const el of [fromEl, toEl]) {
+        el.addEventListener('change', () => {
+          // A range can't run backwards, so the other end follows.
+          const [from, to] = monthRange();
+          if (from > to) (el === fromEl ? toEl : fromEl).value = el.value;
+          fetchAndRender();
+        });
+      }
+
+      periodsEl.appendChild(buildYearRow(YEARS[0] ?? now.getFullYear()));
+      if (YEARS[1]) periodsEl.appendChild(buildYearRow(YEARS[1]));
       syncControls();
 
       document.getElementById('add-period').addEventListener('click', () => {
-        // Same month, first year not already picked, so a new row is never a duplicate.
-        const periods = readPeriods();
-        const used = periods.map(p => String(p.year));
-        const year = YEARS.find(y => !used.includes(y)) ?? YEARS.at(-1);
-        periodsEl.appendChild(buildPeriodRow(periods.at(-1).month, year));
+        // First year not already picked, so a new row is never a duplicate.
+        const used = readYears().map(String);
+        periodsEl.appendChild(buildYearRow(
+          YEARS.find(y => !used.includes(y)) ?? YEARS.at(-1)));
         syncControls();
         fetchAndRender();
       });

@@ -194,26 +194,35 @@ body::after {
   align-items: center;
 }
 
-/* Month and year join into one control, so a period reads as a single choice. */
+/* The two month dropdowns join into one control: it is a single range. */
 .period-pair {
   display: flex;
+  width: 280px;
+  max-width: 100%;
 }
 
-.period-pair .period-month {
-  border-radius: 10px 0 0 10px;
-  flex: 1 1 auto;
+.period-pair select {
+  border-radius: 0;
   min-width: 0;
+  flex: 1 1 0;
 }
 
-.period-pair .period-year {
+.period-pair select:first-child {
+  border-radius: 10px 0 0 10px;
+}
+
+.period-pair select:last-child {
   border-radius: 0 10px 10px 0;
   border-left: none;
-  min-width: 0;
-  width: 104px;
 }
 
 .period-pair select:focus {
   z-index: 1;
+}
+
+.period-row .period-year {
+  min-width: 0;
+  width: 110px;
 }
 
 .period-remove {
