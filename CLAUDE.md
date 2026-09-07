@@ -26,6 +26,9 @@ Supporting files:
 # Scraper
 python src/main.py
 
+# Scrape without storing anything but data/test/test_output.csv (CI probe)
+python src/main.py --dry-run
+
 # Flask web app
 python run.py
 ```
@@ -46,4 +49,6 @@ Python 3.13. Dependencies in `requirements.txt`. Requires Chrome/Chromium for Se
 
 ## GitHub Actions
 
-All workflows use the `prod` environment and auto-commit data back to `main`.
+Every workflow is a thin caller of `scrape.yml`, which checks out, installs, runs
+one script and commits the result back to `main` under the `prod` environment.
+A new scheduled scraper needs a caller with a cron and a `script:` input, nothing else.

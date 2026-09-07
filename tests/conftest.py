@@ -1,60 +1,18 @@
 import sqlite3
 import pytest
 from app import app as flask_app
+from src import db_handler
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    """Flask test client with an isolated SQLite DB containing a known schema."""
+    """Flask test client over an isolated DB built by the production schema."""
     db_path = str(tmp_path / "test.db")
-    # Patch the local DB_PATH binding inside app.routes (that's what route
-    # functions actually reference after `from src.config import DB_PATH`).
+    # Patch the local DB_PATH binding inside each module (that's what the code
+    # actually references after `from src.config import DB_PATH`).
     monkeypatch.setattr("app.routes.DB_PATH", db_path)
-
-    conn = sqlite3.connect(db_path)
-    conn.execute("""
-        CREATE TABLE pollen_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            city TEXT NOT NULL,
-            plant TEXT NOT NULL,
-            pollen_concentration TEXT NOT NULL,
-            date DATE NOT NULL,
-            UNIQUE(city, plant, date)
-        )
-    """)
-    conn.execute("""
-        CREATE TABLE rain_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            station TEXT NOT NULL,
-            city TEXT NOT NULL,
-            rain_mm REAL NOT NULL,
-            date DATE NOT NULL,
-            UNIQUE(station, date)
-        )
-    """)
-    conn.execute("""
-        CREATE TABLE air_temp_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            station TEXT NOT NULL,
-            city TEXT NOT NULL,
-            temp_c REAL NOT NULL,
-            hour TEXT NOT NULL,
-            date DATE NOT NULL,
-            UNIQUE(station, date)
-        )
-    """)
-    conn.execute("""
-        CREATE TABLE sea_temp_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            station TEXT NOT NULL,
-            temp_c REAL NOT NULL,
-            hour TEXT NOT NULL,
-            date DATE NOT NULL,
-            UNIQUE(station, date)
-        )
-    """)
-    conn.commit()
-    conn.close()
+    monkeypatch.setattr(db_handler, "DB_PATH", db_path)
+    db_handler.setup_db().close()
 
     flask_app.config["TESTING"] = True
     return flask_app.test_client()
