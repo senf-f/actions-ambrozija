@@ -60,10 +60,11 @@ def main():
             for key, value in pollen_data.items():
                 print(f"{city}: {key}: {value}")
                 save_to_csv(city=city, plant=key, pollen_data=value)
-                db_handler.insert_into_db(conn=conn, city=city, plant=key, pollen_concentration=value,
-                                          date=datetime.date.today().isoformat())
+                db_handler.insert(conn, "pollen_data", city=city, plant=key,
+                                  pollen_concentration=value,
+                                  date=datetime.date.today().isoformat())
 
-    scraper.close_driver(driver)
+    driver.quit()
     conn.close()
 
     nove = unknown_plants(seen_plants)

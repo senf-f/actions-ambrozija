@@ -77,12 +77,14 @@ def main():
         # harmless as long as the row is filed under the feed's own date.
         date, termin, rows = parse_tmax(fetch_xml(TMAX_URL))
         for station, city, temp in rows:
-            db_handler.insert_into_air_temp_db(conn, station, city, temp, termin, date)
+            db_handler.insert(conn, "air_temp_data", station=station, city=city,
+                              temp_c=temp, hour=termin, date=date)
         print(f"[air max] {date} (termin {termin}h): stored {len(rows)} station(s)")
 
         date, rows = parse_sea(fetch_xml(SEA_URL))
         for station, temp in rows:
-            db_handler.insert_into_sea_temp_db(conn, station, temp, SEA_HOUR, date)
+            db_handler.insert(conn, "sea_temp_data", station=station, temp_c=temp,
+                              hour=SEA_HOUR, date=date)
         print(f"[sea] {date} {SEA_HOUR}h: stored {len(rows)} station(s)")
     finally:
         conn.close()

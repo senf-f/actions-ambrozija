@@ -30,7 +30,7 @@ def main():
                     print(f"{city}: {plant}: {value}")
                     writer.writerow([city, plant, value, now.strftime("%Y-%m-%d %H:%M:%S")])
 
-    scraper.close_driver(driver)
+    driver.quit()
     print(f"\nResults written to {file_path}")
     print(f"Execution time: {perf_counter() - start} seconds.")
 

@@ -17,10 +17,6 @@ def initialize_driver():
     return driver
 
 
-def close_driver(driver):
-    driver.quit()
-
-
 def accept_cookies(driver):
     try:
         driver.find_element(By.CSS_SELECTOR, "#perpetuum-cookie-bar .perpetuum-button-dismiss a").click()

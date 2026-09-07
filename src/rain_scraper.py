@@ -30,7 +30,8 @@ def main():
     try:
         date, rows = parse_rain(fetch_xml(RAIN_URL))
         for station, city, mm in rows:
-            db_handler.insert_into_rain_db(conn, station, city, mm, date)
+            db_handler.insert(conn, "rain_data", station=station, city=city,
+                              rain_mm=mm, date=date)
         print(f"[rain] {date}: stored {len(rows)} station(s)")
     finally:
         conn.close()

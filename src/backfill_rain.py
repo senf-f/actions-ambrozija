@@ -58,7 +58,8 @@ def main(path):
         for sheet, (city, station) in SHEETS.items():
             count = 0
             for date, mm in parse_sheet(wb[sheet]):
-                db_handler.insert_into_rain_db(conn, station, city, mm, date)
+                db_handler.insert(conn, "rain_data", station=station, city=city,
+                                  rain_mm=mm, date=date)
                 count += 1
             print(f"[backfill] {station}: {count} days")
     finally:

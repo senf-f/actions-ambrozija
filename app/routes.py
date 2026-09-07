@@ -2,7 +2,7 @@ import sqlite3
 from datetime import date, datetime, timedelta
 
 import requests
-from flask import jsonify, render_template, request
+from flask import abort, jsonify, make_response, render_template, request
 
 from app import app
 from src.config import (
@@ -16,101 +16,86 @@ from src.config import (
 )
 
 
-def _date_range():
-    """Read date_from/date_to query params, defaulting to the current month.
+def _bad_request(message):
+    abort(make_response(jsonify({'error': message}), 400))
 
-    Returns (date_from, date_to, None) or (None, None, (payload, status)).
-    """
+
+def _rows(sql, *params):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return conn.execute(sql, params).fetchall()
+    finally:
+        conn.close()
+
+
+def _city():
+    return request.args.get('city', '').strip() or _bad_request('city is required')
+
+
+def _date_range():
+    """Read date_from/date_to query params, defaulting to the current month."""
     today = datetime.today()
     date_from = request.args.get('date_from', '').strip() or today.replace(day=1).strftime('%Y-%m-%d')
     date_to = request.args.get('date_to', '').strip() or today.strftime('%Y-%m-%d')
 
     try:
-        parsed_from = datetime.strptime(date_from, '%Y-%m-%d')
-        parsed_to = datetime.strptime(date_to, '%Y-%m-%d')
+        parsed = [datetime.strptime(d, '%Y-%m-%d') for d in (date_from, date_to)]
     except ValueError:
-        return None, None, ({'error': 'invalid date format, expected YYYY-MM-DD'}, 400)
+        _bad_request('invalid date format, expected YYYY-MM-DD')
 
-    if parsed_from > parsed_to:
-        return None, None, ({'error': 'date_from must not be after date_to'}, 400)
+    if parsed[0] > parsed[1]:
+        _bad_request('date_from must not be after date_to')
 
-    return date_from, date_to, None
+    return date_from, date_to
 
 
 @app.route('/')
 def index():
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        cursor = conn.cursor()
+    # Fetch unique cities, plants, and months for the dropdowns
+    cities = [row[0] for row in _rows('SELECT DISTINCT city FROM pollen_data')]
+    plants = [row[0] for row in _rows('SELECT DISTINCT plant FROM pollen_data')]
+    months = [row[0] for row in _rows(
+        'SELECT DISTINCT strftime("%Y-%m", date) as month FROM pollen_data ORDER BY month')]
 
-        # Fetch unique cities, plants, and months for the dropdowns
-        cursor.execute('SELECT DISTINCT city FROM pollen_data')
-        cities = [row[0] for row in cursor.fetchall()]
+    # Get filter parameters. On a fresh visit (no params) default to
+    # Zagreb + current month so we don't load the whole table.
+    if not request.args:
+        selected_city = 'Zagreb'
+        selected_plant = None
+        selected_month = datetime.today().strftime('%Y-%m')
+    else:
+        selected_city = request.args.get('city')
+        selected_plant = request.args.get('plant')
+        selected_month = request.args.get('month')
 
-        cursor.execute('SELECT DISTINCT plant FROM pollen_data')
-        plants = [row[0] for row in cursor.fetchall()]
+    # Build the query with filters
+    query = 'SELECT city, plant, pollen_concentration, date FROM pollen_data WHERE 1=1'
+    params = []
 
-        cursor.execute('SELECT DISTINCT strftime("%Y-%m", date) as month FROM pollen_data ORDER BY month')
-        months = [row[0] for row in cursor.fetchall()]
+    if selected_city:
+        query += ' AND city = ?'
+        params.append(selected_city)
 
-        # Get filter parameters. On a fresh visit (no params) default to
-        # Zagreb + current month so we don't load the whole table.
-        if not request.args:
-            selected_city = 'Zagreb'
-            selected_plant = None
-            selected_month = datetime.today().strftime('%Y-%m')
-        else:
-            selected_city = request.args.get('city')
-            selected_plant = request.args.get('plant')
-            selected_month = request.args.get('month')
+    if selected_plant:
+        query += ' AND plant = ?'
+        params.append(selected_plant)
 
-        # Build the query with filters
-        query = 'SELECT city, plant, pollen_concentration, date FROM pollen_data WHERE 1=1'
-        params = []
+    if selected_month:
+        query += ' AND strftime("%Y-%m", date) = ?'
+        params.append(selected_month)
 
-        if selected_city:
-            query += ' AND city = ?'
-            params.append(selected_city)
-
-        if selected_plant:
-            query += ' AND plant = ?'
-            params.append(selected_plant)
-
-        if selected_month:
-            query += ' AND strftime("%Y-%m", date) = ?'
-            params.append(selected_month)
-
-        query += ' ORDER BY date DESC'
-        cursor.execute(query, params)
-        data = cursor.fetchall()
-    finally:
-        conn.close()
+    data = _rows(query + ' ORDER BY date DESC', *params)
     return render_template('index.html', data=data, cities=cities, plants=plants, months=months,
                            selected_city=selected_city, selected_plant=selected_plant, selected_month=selected_month)
 
 
 @app.route('/graph')
-def graph():
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        cursor = conn.cursor()
-        cursor.execute('SELECT DISTINCT city FROM pollen_data ORDER BY city ASC')
-        cities = [row[0] for row in cursor.fetchall()]
-    finally:
-        conn.close()
-    return render_template('graph.html', cities=cities)
-
-
 @app.route('/compare')
-def compare():
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        cursor = conn.cursor()
-        cursor.execute('SELECT DISTINCT city FROM pollen_data ORDER BY city ASC')
-        cities = [row[0] for row in cursor.fetchall()]
-    finally:
-        conn.close()
-    return render_template('compare.html', cities=cities)
+def pollen_chart():
+    """Both chart pages: same city dropdown, different template."""
+    cities = [row[0] for row in
+              _rows('SELECT DISTINCT city FROM pollen_data ORDER BY city ASC')]
+    return render_template(f'{request.path.lstrip("/")}.html', cities=cities)
 
 
 @app.route('/temps')
@@ -124,47 +109,24 @@ def temps():
 
 @app.route('/api/plants')
 def plants():
-    city = request.args.get('city', '').strip()
-    if not city:
-        return jsonify({'error': 'city is required'}), 400
-
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            'SELECT DISTINCT plant FROM pollen_data WHERE city = ? ORDER BY plant ASC',
-            (city,)
-        )
-        result = [row[0] for row in cursor.fetchall()]
-    finally:
-        conn.close()
-
-    return jsonify(result)
+    return jsonify([row[0] for row in _rows(
+        'SELECT DISTINCT plant FROM pollen_data WHERE city = ? ORDER BY plant ASC',
+        _city()
+    )])
 
 
 @app.route('/api/graph-data')
 def graph_data():
-    city = request.args.get('city', '').strip()
-    if not city:
-        return jsonify({'error': 'city is required'}), 400
+    city = _city()
+    date_from_str, date_to_str = _date_range()
 
-    date_from_str, date_to_str, err = _date_range()
-    if err:
-        return jsonify(err[0]), err[1]
-
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            # Legacy rows store date as a full timestamp, so a plain string
-            # BETWEEN would drop the last day of the range.
-            'SELECT plant, date(date), pollen_concentration FROM pollen_data '
-            'WHERE city = ? AND date(date) BETWEEN ? AND ? ORDER BY date ASC',
-            (city, date_from_str, date_to_str)
-        )
-        rows = cursor.fetchall()
-    finally:
-        conn.close()
+    rows = _rows(
+        # Legacy rows store date as a full timestamp, so a plain string
+        # BETWEEN would drop the last day of the range.
+        'SELECT plant, date(date), pollen_concentration FROM pollen_data '
+        'WHERE city = ? AND date(date) BETWEEN ? AND ? ORDER BY date ASC',
+        city, date_from_str, date_to_str
+    )
 
     result = []
     for plant, date, concentration in rows:
@@ -182,26 +144,14 @@ def graph_data():
 
 @app.route('/api/rain-data')
 def rain_data():
-    city = request.args.get('city', '').strip()
-    if not city:
-        return jsonify({'error': 'city is required'}), 400
+    city = _city()
+    date_from_str, date_to_str = _date_range()
 
-    date_from_str, date_to_str, err = _date_range()
-    if err:
-        return jsonify(err[0]), err[1]
-
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            'SELECT station, date, rain_mm FROM rain_data '
-            'WHERE city = ? AND date BETWEEN ? AND ? ORDER BY date ASC',
-            (city, date_from_str, date_to_str)
-        )
-        rows = cursor.fetchall()
-    finally:
-        conn.close()
-
+    rows = _rows(
+        'SELECT station, date, rain_mm FROM rain_data '
+        'WHERE city = ? AND date BETWEEN ? AND ? ORDER BY date ASC',
+        city, date_from_str, date_to_str
+    )
     return jsonify([{'station': s, 'date': d, 'mm': mm} for s, d, mm in rows])
 
 
@@ -218,13 +168,8 @@ def cams_data():
     ponytail: no archive kept, so a range older than the window returns []. Add
     a daily scraper if long history is wanted.
     """
-    city = request.args.get('city', '').strip()
-    if not city:
-        return jsonify({'error': 'city is required'}), 400
-
-    date_from_str, date_to_str, err = _date_range()
-    if err:
-        return jsonify(err[0]), err[1]
+    city = _city()
+    date_from_str, date_to_str = _date_range()
 
     coords = CITY_COORDS.get(city)
     if not coords:
@@ -270,31 +215,21 @@ def temp_data():
     Sea stations are named after the city itself, so the same name filters both.
     A city may legitimately have one series and not the other.
     """
-    city = request.args.get('city', '').strip()
-    if not city:
-        return jsonify({'error': 'city is required'}), 400
+    city = _city()
+    date_from_str, date_to_str = _date_range()
 
-    date_from_str, date_to_str, err = _date_range()
-    if err:
-        return jsonify(err[0]), err[1]
+    air = _rows(
+        'SELECT date, temp_c FROM air_temp_data '
+        'WHERE city = ? AND date BETWEEN ? AND ? ORDER BY date ASC',
+        city, date_from_str, date_to_str
+    )
+    sea = _rows(
+        'SELECT date, temp_c FROM sea_temp_data '
+        'WHERE station = ? AND date BETWEEN ? AND ? ORDER BY date ASC',
+        city, date_from_str, date_to_str
+    )
 
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            'SELECT date, temp_c FROM air_temp_data '
-            'WHERE city = ? AND date BETWEEN ? AND ? ORDER BY date ASC',
-            (city, date_from_str, date_to_str)
-        )
-        air = [{'date': d, 'temp': t} for d, t in cursor.fetchall()]
-
-        cursor.execute(
-            'SELECT date, temp_c FROM sea_temp_data '
-            'WHERE station = ? AND date BETWEEN ? AND ? ORDER BY date ASC',
-            (city, date_from_str, date_to_str)
-        )
-        sea = [{'date': d, 'temp': t} for d, t in cursor.fetchall()]
-    finally:
-        conn.close()
-
-    return jsonify({'air': air, 'sea': sea})
+    return jsonify({
+        'air': [{'date': d, 'temp': t} for d, t in air],
+        'sea': [{'date': d, 'temp': t} for d, t in sea],
+    })

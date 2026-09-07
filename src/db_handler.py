@@ -57,38 +57,16 @@ def setup_db():
     conn.commit()
     return conn
 
-def insert_into_db(conn, city, plant, pollen_concentration, date):
-    """Insert pollen data into the database, avoiding duplicates."""
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT OR REPLACE INTO pollen_data (city, plant, pollen_concentration, date)
-        VALUES (?, ?, ?, ?)
-    ''', (city, plant, pollen_concentration, date))
-    conn.commit()
+def insert(conn, table, **columns):
+    """Insert one row, replacing an existing one with the same UNIQUE key.
 
-def insert_into_rain_db(conn, station, city, rain_mm, date):
-    """Insert rain data into the database, avoiding duplicates."""
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT OR REPLACE INTO rain_data (station, city, rain_mm, date)
-        VALUES (?, ?, ?, ?)
-    ''', (station, city, rain_mm, date))
-    conn.commit()
-
-def insert_into_air_temp_db(conn, station, city, temp_c, hour, date):
-    """Insert air temperature into the database, avoiding duplicates."""
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT OR REPLACE INTO air_temp_data (station, city, temp_c, hour, date)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (station, city, temp_c, hour, date))
-    conn.commit()
-
-def insert_into_sea_temp_db(conn, station, temp_c, hour, date):
-    """Insert sea temperature into the database, avoiding duplicates."""
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT OR REPLACE INTO sea_temp_data (station, temp_c, hour, date)
-        VALUES (?, ?, ?, ?)
-    ''', (station, temp_c, hour, date))
+    Table and column names are interpolated, so they must stay literals from
+    this repo, never request or feed data.
+    """
+    names = ", ".join(columns)
+    placeholders = ", ".join("?" * len(columns))
+    conn.execute(
+        f'INSERT OR REPLACE INTO {table} ({names}) VALUES ({placeholders})',
+        tuple(columns.values())
+    )
     conn.commit()
