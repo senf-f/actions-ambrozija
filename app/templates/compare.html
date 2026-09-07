@@ -1,22 +1,15 @@
-<!DOCTYPE html>
-<html lang="hr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Usporedba peludi</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Usporedba koncentracije peludi</h1>
-      <p class="subtitle">Jedna biljka i grad kroz različita razdoblja</p>
-      <a href="/" class="nav-link" data-icon="&#x2937;">Tablični prikaz</a>
-      <a href="/graph" class="nav-link" data-icon="&#x2937;">Graf</a>
-      <a href="/temps" class="nav-link" data-icon="&#x2937;">Temperature</a>
-    </div>
+{% extends "base.html" %}
 
+{% block title %}Usporedba peludi{% endblock %}
+{% block heading %}Usporedba koncentracije peludi{% endblock %}
+{% block subtitle %}Jedna biljka i grad kroz različita razdoblja{% endblock %}
+
+{% block head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='chart-common.js') }}"></script>
+{% endblock %}
+
+{% block content %}
     <div class="filter-card">
       <form id="filter-form">
         <div class="filter-group">
@@ -55,33 +48,25 @@
     <div id="chart-wrapper" class="chart-card" style="display:none">
       <canvas id="compare-chart"></canvas>
     </div>
+{% endblock %}
 
-    <div class="footer">
+{% block footer %}
       Izvor peludi: <a href="https://stampar.hr/hr" target="_blank" rel="noopener">stampar.hr</a><br>
       Izvor oborina i temperatura: DHMZ &mdash;
       <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a><br>
       Model ambrozije: CAMS ENSEMBLE (<a href="https://atmosphere.copernicus.eu" target="_blank" rel="noopener">Copernicus</a>)
       preko <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> &mdash; samo zadnja ~3 mjeseca
-    </div>
-  </div>
+{% endblock %}
 
+{% block scripts %}
   <script>
-    const PALETTE = [
-      '#2d5a42','#d4a843','#c0392b','#2980b9','#7c3aed',
-      '#0891b2','#be185d','#92400e','#16a34a','#1a3a2a'
-    ];
     const MONTHS_HR = [
       'Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
       'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'
     ];
-    const RAIN_COLORS = ['#2980b9', '#5dade2', '#85c1e9'];
-    const TEMP_COLORS = { air: '#e67e22', sea: '#0891b2' };
     const TEMP_LABELS = { air: 'maks. zrak', sea: 'more 8h' };
-    const CAMS_COLOR = '#7c3aed';
 
     let chart = null;
-
-    function pad(n) { return String(n).padStart(2, '0'); }
 
     function lastDayOfMonth(year, month) {
       return new Date(year, month, 0).getDate(); // month is 1-based here
@@ -277,15 +262,13 @@
       const scales = {
         y: {
           beginAtZero: true,
-          title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-          grid: { color: 'rgba(0,0,0,0.04)' },
-          ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+          title: { display: true, text: 'Koncentracija' },
+          grid: { color: 'rgba(0,0,0,0.04)' }
         },
         x: {
           type: 'category',
-          title: { display: true, text: 'Dan u mjesecu', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-          grid: { display: false },
-          ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+          title: { display: true, text: 'Dan u mjesecu' },
+          grid: { display: false }
         }
       };
 
@@ -293,18 +276,18 @@
         scales.y1 = {
           beginAtZero: true,
           position: 'right',
-          title: { display: true, text: 'Oborine (mm)', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#2980b9' },
+          title: { display: true, text: 'Oborine (mm)', color: '#2980b9' },
           grid: { drawOnChartArea: false },
-          ticks: { font: { family: 'Outfit', size: 11 }, color: '#2980b9' }
+          ticks: { color: '#2980b9' }
         };
       }
 
       if (tempDs.length) {
         scales.y2 = {
           position: 'right',
-          title: { display: true, text: 'Temperatura (°C)', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#e67e22' },
+          title: { display: true, text: 'Temperatura (°C)', color: '#e67e22' },
           grid: { drawOnChartArea: false },
-          ticks: { font: { family: 'Outfit', size: 11 }, color: '#e67e22' }
+          ticks: { color: '#e67e22' }
         };
       }
 
@@ -312,9 +295,9 @@
         scales.y3 = {
           beginAtZero: true,
           position: 'right',
-          title: { display: true, text: 'Ambrozija CAMS (zrnaca/m³)', font: { family: 'Outfit', size: 12, weight: '500' }, color: CAMS_COLOR },
+          title: { display: true, text: 'Ambrozija CAMS (zrnaca/m³)', color: CAMS_COLOR },
           grid: { drawOnChartArea: false },
-          ticks: { font: { family: 'Outfit', size: 11 }, color: CAMS_COLOR }
+          ticks: { color: CAMS_COLOR }
         };
       }
 
@@ -327,19 +310,6 @@
           responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: {
-              display: true,
-              labels: { font: { family: 'Outfit', size: 12 }, color: '#6b6b6b' }
-            },
-            tooltip: {
-              backgroundColor: '#1a3a2a',
-              titleFont: { family: 'Outfit', weight: '500' },
-              bodyFont: { family: 'Outfit' },
-              cornerRadius: 8,
-              padding: 12
-            }
-          },
           scales: scales
         }
       });
@@ -462,5 +432,4 @@
       fetchAndRender();
     });
   </script>
-</body>
-</html>
+{% endblock %}

@@ -1,21 +1,10 @@
-<!DOCTYPE html>
-<html lang="hr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peludni podaci</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Peludni podaci</h1>
-      <p class="subtitle">Koncentracije peludi po mjesecu i gradu</p>
-      <a href="/graph" class="nav-link" data-icon="&#x2937;">Graf</a>
-      <a href="/compare" class="nav-link" data-icon="&#x2937;">Usporedba</a>
-      <a href="/temps" class="nav-link" data-icon="&#x2937;">Temperature</a>
-    </div>
+{% extends "base.html" %}
 
+{% block title %}Peludni podaci{% endblock %}
+{% block heading %}Peludni podaci{% endblock %}
+{% block subtitle %}Koncentracije peludi po mjesecu i gradu{% endblock %}
+
+{% block content %}
     <div class="filter-card">
       <form method="GET" action="/">
         <div class="filter-group">
@@ -74,10 +63,8 @@
         </tbody>
       </table>
     </div>
+{% endblock %}
 
-    <div class="footer">
+{% block footer %}
       Izvor peludi: <a href="https://stampar.hr/hr" target="_blank" rel="noopener">stampar.hr</a>
-    </div>
-  </div>
-</body>
-</html>
+{% endblock %}

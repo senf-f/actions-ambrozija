@@ -1,22 +1,15 @@
-<!DOCTYPE html>
-<html lang="hr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Peludni graf</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Graf koncentracije peludi</h1>
-      <p class="subtitle">Vizualni prikaz dnevnih mjerenja</p>
-      <a href="/" class="nav-link" data-icon="&#x2937;">Tablični prikaz</a>
-      <a href="/compare" class="nav-link" data-icon="&#x2937;">Usporedba</a>
-      <a href="/temps" class="nav-link" data-icon="&#x2937;">Temperature</a>
-    </div>
+{% extends "base.html" %}
 
+{% block title %}Peludni graf{% endblock %}
+{% block heading %}Graf koncentracije peludi{% endblock %}
+{% block subtitle %}Vizualni prikaz dnevnih mjerenja{% endblock %}
+
+{% block head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='chart-common.js') }}"></script>
+{% endblock %}
+
+{% block content %}
     <div class="filter-card">
       <form id="filter-form">
         <div class="filter-group">
@@ -75,39 +68,24 @@
     <div id="chart-wrapper" class="chart-card" style="display:none">
       <canvas id="pollen-chart"></canvas>
     </div>
+{% endblock %}
 
-    <div class="footer">
+{% block footer %}
       Izvor peludi: <a href="https://stampar.hr/hr" target="_blank" rel="noopener">stampar.hr</a><br>
       Izvor oborina: DHMZ &mdash;
       <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a><br>
       Model ambrozije: CAMS ENSEMBLE (<a href="https://atmosphere.copernicus.eu" target="_blank" rel="noopener">Copernicus</a>)
       preko <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-    </div>
-  </div>
+{% endblock %}
 
+{% block scripts %}
   <script>
-    const PALETTE = [
-      '#2d5a42','#d4a843','#c0392b','#2980b9','#7c3aed',
-      '#0891b2','#be185d','#92400e','#16a34a','#1a3a2a'
-    ];
-
-    const RAIN_COLORS = ['#2980b9', '#5dade2', '#85c1e9'];
-
-    const CAMS_COLOR = '#7c3aed';
-
     let chart = null;
     let currentData = null;
     let plantColors = {};
     let activePlants = new Set();
     let rainByStation = {};
     let camsByDate = {};
-
-    function formatDate(d) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }
 
     function isMobile() {
       return window.innerWidth <= 640;
@@ -221,17 +199,14 @@
       const scales = {
         y: {
           beginAtZero: true,
-          title: { display: true, text: 'Koncentracija', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-          grid: { color: 'rgba(0,0,0,0.04)' },
-          ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+          title: { display: true, text: 'Koncentracija' },
+          grid: { color: 'rgba(0,0,0,0.04)' }
         },
         x: {
           type: 'category',
-          title: { display: true, text: 'Datum', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+          title: { display: true, text: 'Datum' },
           grid: { display: false },
           ticks: {
-            font: { family: 'Outfit', size: 11 },
-            color: '#6b6b6b',
             callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10) + '.'; }
           }
         }
@@ -241,9 +216,9 @@
         scales.y1 = {
           beginAtZero: true,
           position: 'right',
-          title: { display: true, text: 'Oborine (mm)', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#2980b9' },
+          title: { display: true, text: 'Oborine (mm)', color: '#2980b9' },
           grid: { drawOnChartArea: false },
-          ticks: { font: { family: 'Outfit', size: 11 }, color: '#2980b9' }
+          ticks: { color: '#2980b9' }
         };
       }
 
@@ -251,9 +226,9 @@
         scales.y2 = {
           beginAtZero: true,
           position: 'right',
-          title: { display: true, text: 'Ambrozija CAMS (zrnaca/m³)', font: { family: 'Outfit', size: 12, weight: '500' }, color: CAMS_COLOR },
+          title: { display: true, text: 'Ambrozija CAMS (zrnaca/m³)', color: CAMS_COLOR },
           grid: { drawOnChartArea: false },
-          ticks: { font: { family: 'Outfit', size: 11 }, color: CAMS_COLOR }
+          ticks: { color: CAMS_COLOR }
         };
       }
 
@@ -265,16 +240,7 @@
           responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: '#1a3a2a',
-              titleFont: { family: 'Outfit', weight: '500' },
-              bodyFont: { family: 'Outfit' },
-              cornerRadius: 8,
-              padding: 12
-            }
-          },
+          plugins: { legend: { display: false } },
           scales: scales
         }
       });
@@ -453,5 +419,4 @@
       fetchAndRender();
     });
   </script>
-</body>
-</html>
+{% endblock %}

@@ -454,11 +454,6 @@ body::after {
   color: var(--forest);
 }
 
-/* ── Pollen badge (concentration) ── */
-.concentration-high { color: #c0392b; }
-.concentration-med { color: var(--pollen); }
-.concentration-low { color: var(--sage); }
-
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .container { padding: 20px 14px 32px; }

@@ -1,22 +1,15 @@
-<!DOCTYPE html>
-<html lang="hr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Temperature</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Temperatura zraka i mora</h1>
-      <p class="subtitle">Dnevna mjerenja DHMZ-a</p>
-      <a href="/" class="nav-link" data-icon="&#x2937;">Tablični prikaz</a>
-      <a href="/graph" class="nav-link" data-icon="&#x2937;">Graf</a>
-      <a href="/compare" class="nav-link" data-icon="&#x2937;">Usporedba</a>
-    </div>
+{% extends "base.html" %}
 
+{% block title %}Temperature{% endblock %}
+{% block heading %}Temperatura zraka i mora{% endblock %}
+{% block subtitle %}Dnevna mjerenja DHMZ-a{% endblock %}
+
+{% block head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='chart-common.js') }}"></script>
+{% endblock %}
+
+{% block content %}
     <div class="filter-card">
       <form id="filter-form">
         <div class="filter-group">
@@ -48,26 +41,21 @@
     <div id="chart-wrapper" class="chart-card" style="display:none">
       <canvas id="temp-chart"></canvas>
     </div>
+{% endblock %}
 
-    <div class="footer">
+{% block footer %}
       Izvor: DHMZ &mdash;
       <a href="https://meteo.hr/podaci_e.php?param=&section=podaci_vrijeme" target="_blank" rel="noopener">meteo.hr</a>
-    </div>
-  </div>
+{% endblock %}
 
+{% block scripts %}
   <script>
     const SERIES = [
-      { kind: 'air', label: 'zrak (dnevni maksimum)', color: '#e67e22' },
-      { kind: 'sea', label: 'more (8h)', color: '#0891b2' }
+      { kind: 'air', label: 'zrak (dnevni maksimum)', color: TEMP_COLORS.air },
+      { kind: 'sea', label: 'more (8h)', color: TEMP_COLORS.sea }
     ];
 
     let chart = null;
-
-    function formatDate(d) {
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${d.getFullYear()}-${m}-${day}`;
-    }
 
     function renderChart(payload) {
       const dates = [...new Set(
@@ -100,29 +88,20 @@
           maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { labels: { font: { family: 'Outfit', size: 12 }, color: '#6b6b6b' } },
             tooltip: {
-              backgroundColor: '#1a3a2a',
-              titleFont: { family: 'Outfit', weight: '500' },
-              bodyFont: { family: 'Outfit' },
-              cornerRadius: 8,
-              padding: 12,
               callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} °C` }
             }
           },
           scales: {
             y: {
-              title: { display: true, text: 'Temperatura (°C)', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
-              grid: { color: 'rgba(0,0,0,0.04)' },
-              ticks: { font: { family: 'Outfit', size: 11 }, color: '#6b6b6b' }
+              title: { display: true, text: 'Temperatura (°C)' },
+              grid: { color: 'rgba(0,0,0,0.04)' }
             },
             x: {
               type: 'category',
-              title: { display: true, text: 'Datum', font: { family: 'Outfit', size: 12, weight: '500' }, color: '#6b6b6b' },
+              title: { display: true, text: 'Datum' },
               grid: { display: false },
               ticks: {
-                font: { family: 'Outfit', size: 11 },
-                color: '#6b6b6b',
                 callback: function(val) {
                   const [, m, d] = this.getLabelForValue(val).split('-');
                   return `${parseInt(d, 10)}.${parseInt(m, 10)}.`;
@@ -192,5 +171,4 @@
       fetchAndRender();
     });
   </script>
-</body>
-</html>
+{% endblock %}
