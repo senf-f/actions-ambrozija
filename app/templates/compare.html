@@ -27,7 +27,7 @@
         </div>
 
         <div class="filter-group filter-group-wide">
-          <label>Razdoblja (do 3 mjeseca)</label>
+          <label>Razdoblja &mdash; isti mjesec, do 3 godine</label>
           <div id="periods" class="periods"></div>
           <button type="button" id="add-period" class="plant-action-btn">+ Dodaj razdoblje</button>
         </div>
@@ -78,7 +78,7 @@
       return `${MONTHS_HR[month - 1]} ${year}`;
     }
 
-    function buildSelect(className, options, selected) {
+    function buildSelect(className, options, selected, onChange) {
       const select = document.createElement('select');
       select.className = className;
       options.forEach(({ value, text }) => {
@@ -88,7 +88,10 @@
         if (value === selected) opt.selected = true;
         select.appendChild(opt);
       });
-      select.addEventListener('change', () => { fetchAndRender(); });
+      select.addEventListener('change', () => {
+        if (onChange) onChange(select.value);
+        fetchAndRender();
+      });
       return select;
     }
 
@@ -99,9 +102,10 @@
       const pair = document.createElement('div');
       pair.className = 'period-pair';
       pair.appendChild(buildSelect('period-month',
-        MONTHS_HR.map((name, i) => ({ value: String(i + 1), text: name })), String(month)));
+        MONTHS_HR.map((name, i) => ({ value: String(i + 1), text: name })),
+        String(month), syncMonths));
       pair.appendChild(buildSelect('period-year',
-        YEARS.map(y => ({ value: y, text: y })), String(year)));
+        YEARS.map(y => ({ value: y, text: y })), String(year), syncYears));
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -110,7 +114,7 @@
       removeBtn.addEventListener('click', () => {
         if (document.querySelectorAll('.period-row').length > 1) {
           row.remove();
-          syncAddButton();
+          syncControls();
           fetchAndRender();
         }
       });
@@ -120,9 +124,25 @@
       return row;
     }
 
-    function syncAddButton() {
+    // The x-axis is day-of-month, so two different months on one chart compare
+    // nothing. Every row shares the month; only the year varies.
+    function syncMonths(month) {
+      document.querySelectorAll('.period-month').forEach(sel => { sel.value = month; });
+    }
+
+    function syncYears() {
+      const picked = new Set([...document.querySelectorAll('.period-year')].map(s => s.value));
+      document.querySelectorAll('.period-year').forEach(sel => {
+        for (const opt of sel.options) {
+          opt.disabled = opt.value !== sel.value && picked.has(opt.value);
+        }
+      });
+    }
+
+    function syncControls() {
       document.getElementById('add-period').disabled =
         document.querySelectorAll('.period-row').length >= MAX_PERIODS;
+      syncYears();
     }
 
     function readPeriods() {
@@ -422,9 +442,9 @@
       const curYear = now.getFullYear();
       const curMonth = now.getMonth() + 1;
 
-      periodsEl.appendChild(buildPeriodRow(curMonth, curYear));
-      periodsEl.appendChild(buildPeriodRow(curMonth, YEARS[1] ?? curYear));
-      syncAddButton();
+      periodsEl.appendChild(buildPeriodRow(curMonth, YEARS[0] ?? curYear));
+      if (YEARS[1]) periodsEl.appendChild(buildPeriodRow(curMonth, YEARS[1]));
+      syncControls();
 
       document.getElementById('add-period').addEventListener('click', () => {
         // Same month, first year not already picked, so a new row is never a duplicate.
@@ -432,7 +452,7 @@
         const used = periods.map(p => String(p.year));
         const year = YEARS.find(y => !used.includes(y)) ?? YEARS.at(-1);
         periodsEl.appendChild(buildPeriodRow(periods.at(-1).month, year));
-        syncAddButton();
+        syncControls();
         fetchAndRender();
       });
 
