@@ -396,6 +396,7 @@ body::after {
   box-shadow: var(--shadow);
   border: 1px solid var(--sage-soft);
   animation: fadeUp 0.5s ease-out 0.2s both;
+  height: 460px;
 }
 
 .chart-card canvas {
@@ -466,24 +467,31 @@ body::after {
   .header h1 { font-size: 1.5rem; }
   .header .subtitle { font-size: 0.82rem; }
 
-  .filter-card { padding: 16px; }
+  .filter-card { padding: 12px 14px; }
   .filter-card form {
-    flex-direction: column;
     align-items: stretch;
-    gap: 14px;
+    gap: 10px;
   }
+  .filter-group { flex: 1 1 100%; }
+  .filter-group:has(input[type="date"]) { flex: 1 1 calc(50% - 5px); }
+  .filter-group label { font-size: 0.62rem; }
   .filter-group select,
   .filter-group input[type="date"] {
-    min-width: unset;
+    min-width: 0;
     width: 100%;
+    padding: 7px 11px;
+    font-size: 0.82rem;
   }
-  .btn { width: 100%; text-align: center; }
+  .btn { width: 100%; text-align: center; padding: 9px 20px; }
 
-  .plant-filter-card { padding: 14px 16px; }
+  .plant-filter-card { padding: 12px 14px; }
+  .plant-filter-header { margin-bottom: 8px; }
   .plant-pills { gap: 6px; }
   .plant-pill { font-size: 0.72rem; padding: 5px 10px; }
 
-  .chart-card { padding: 14px 10px; }
+  .rain-toggle { margin-bottom: 10px; font-size: 0.82rem; }
+
+  .chart-card { padding: 12px 6px 12px 2px; height: 62vh; min-height: 340px; }
 
   .table-card { border-radius: 12px; }
   .table-card thead th { padding: 10px 12px; font-size: 0.72rem; }
