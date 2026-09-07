@@ -92,10 +92,17 @@ def index():
 @app.route('/graph')
 @app.route('/compare')
 def pollen_chart():
-    """Both chart pages: same city dropdown, different template."""
+    """Both chart pages: same dropdowns, different template.
+
+    The current year is always offered even before its first reading lands.
+    """
     cities = [row[0] for row in
               _rows('SELECT DISTINCT city FROM pollen_data ORDER BY city ASC')]
-    return render_template(f'{request.path.lstrip("/")}.html', cities=cities)
+    stored_years = {row[0] for row in
+                    _rows('SELECT DISTINCT strftime("%Y", date) FROM pollen_data')}
+    years = sorted(stored_years | {str(date.today().year)}, reverse=True)
+    return render_template(f'{request.path.lstrip("/")}.html',
+                           cities=cities, years=years)
 
 
 @app.route('/temps')
