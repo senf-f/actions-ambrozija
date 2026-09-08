@@ -35,7 +35,7 @@
         </div>
 
         <div class="filter-group filter-group-wide">
-          <label>Godine (do 3)</label>
+          <label>Godine</label>
           <div id="periods" class="periods"></div>
           <button type="button" id="add-period" class="plant-action-btn">+ Dodaj godinu</button>
         </div>
@@ -74,7 +74,6 @@
     ];
     const TEMP_LABELS = { air: 'maks. zrak', sea: 'more 8h' };
     const YEARS = {{ years | tojson }};
-    const MAX_YEARS = 3;
 
     let chart = null;
 
@@ -150,7 +149,7 @@
 
     function syncControls() {
       document.getElementById('add-period').disabled =
-        document.querySelectorAll('.period-row').length >= MAX_YEARS;
+        document.querySelectorAll('.period-row').length >= YEARS.length;
       syncYears();
     }
 
