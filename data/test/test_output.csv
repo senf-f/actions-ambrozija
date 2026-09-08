@@ -1,29 +1,27 @@
 city,plant,pollen_concentration,timestamp
-Dubrovnik,Ambrozija (Ambrosia sp.),4.7,2026-09-07 13:15:46
-Dubrovnik,Loboda (Chenopodiaceae),0.8,2026-09-07 13:15:46
-Dubrovnik,Crkvina (Parietaria sp.),0.6,2026-09-07 13:15:46
-Dubrovnik,Bor (Pinus sp.),0.1,2026-09-07 13:15:46
-Dubrovnik,Trave (Poaceae),0.4,2026-09-07 13:15:46
-Osijek,Ambrozija (Ambrosia sp.),7.4,2026-09-07 13:15:46
-Osijek,Koprive (Urticaceae),2.1,2026-09-07 13:15:46
-Osijek,Loboda (Chenopodiaceae),1.0,2026-09-07 13:15:46
-Osijek,Trave (Poaceae),0.8,2026-09-07 13:15:46
-Osijek,Trputac (Plantago sp.),0.2,2026-09-07 13:15:46
-Osijek,Pelin (Artemisia sp.),0.2,2026-09-07 13:15:46
-Pula,Ambrozija (Ambrosia sp.),6.5,2026-09-07 13:15:46
-Pula,Crkvina (Parietaria sp.),3.4,2026-09-07 13:15:46
-Pula,Trave (Poaceae),1.9,2026-09-07 13:15:46
-Split,Ambrozija (Ambrosia sp.),2.5,2026-09-07 13:15:46
-Split,Crkvina (Parietaria sp.),0.4,2026-09-07 13:15:46
-Virovitica,Ambrozija (Ambrosia sp.),9.9,2026-09-07 13:15:46
-Virovitica,Koprive (Urticaceae),4.0,2026-09-07 13:15:46
-Virovitica,Loboda (Chenopodiaceae),2.2,2026-09-07 13:15:46
-Virovitica,Trave (Poaceae),1.5,2026-09-07 13:15:46
-Virovitica,Trputac (Plantago sp.),0.2,2026-09-07 13:15:46
-Zadar,Ambrozija (Ambrosia sp.),7.8,2026-09-07 13:15:46
-Zadar,Koprive (Urticaceae),3.8,2026-09-07 13:15:46
-Zadar,Trave (Poaceae),2.3,2026-09-07 13:15:46
-Zagreb,Ambrozija (Ambrosia sp.),9.3,2026-09-07 13:15:46
-Zagreb,Koprive (Urticaceae),3.3,2026-09-07 13:15:46
-Zagreb,Trputac (Plantago sp.),0.8,2026-09-07 13:15:46
-Zagreb,Trave (Poaceae),0.8,2026-09-07 13:15:46
+Dubrovnik,Ambrozija (Ambrosia sp.),2.2,2026-09-08 11:28:03
+Dubrovnik,Trave (Poaceae),1.1,2026-09-08 11:28:03
+Dubrovnik,Bor (Pinus sp.),0.3,2026-09-08 11:28:03
+Dubrovnik,Loboda (Chenopodiaceae),0.2,2026-09-08 11:28:03
+Dubrovnik,Crkvina (Parietaria sp.),0.2,2026-09-08 11:28:03
+Osijek,Ambrozija (Ambrosia sp.),6.4,2026-09-08 11:28:03
+Osijek,Trave (Poaceae),3.3,2026-09-08 11:28:03
+Osijek,Koprive (Urticaceae),1.5,2026-09-08 11:28:03
+Osijek,Loboda (Chenopodiaceae),1.1,2026-09-08 11:28:03
+Pula,Ambrozija (Ambrosia sp.),6.2,2026-09-08 11:28:03
+Pula,Crkvina (Parietaria sp.),6.1,2026-09-08 11:28:03
+Pula,Bor (Pinus sp.),0.8,2026-09-08 11:28:03
+Split,Ambrozija (Ambrosia sp.),2.5,2026-09-08 11:28:03
+Split,Crkvina (Parietaria sp.),0.4,2026-09-08 11:28:03
+Virovitica,Ambrozija (Ambrosia sp.),9.9,2026-09-08 11:28:03
+Virovitica,Koprive (Urticaceae),4.0,2026-09-08 11:28:03
+Virovitica,Loboda (Chenopodiaceae),2.2,2026-09-08 11:28:03
+Virovitica,Trave (Poaceae),1.5,2026-09-08 11:28:03
+Virovitica,Trputac (Plantago sp.),0.2,2026-09-08 11:28:03
+Zadar,Ambrozija (Ambrosia sp.),7.7,2026-09-08 11:28:03
+Zadar,Koprive (Urticaceae),4.0,2026-09-08 11:28:03
+Zadar,Trave (Poaceae),2.5,2026-09-08 11:28:03
+Zagreb,Ambrozija (Ambrosia sp.),9.7,2026-09-08 11:28:03
+Zagreb,Koprive (Urticaceae),3.0,2026-09-08 11:28:03
+Zagreb,Trputac (Plantago sp.),1.0,2026-09-08 11:28:03
+Zagreb,Trave (Poaceae),1.1,2026-09-08 11:28:03
