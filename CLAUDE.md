@@ -8,7 +8,7 @@ Pollen data scraper for Croatian cities. Scrapes daily pollen concentration data
 
 ## Architecture
 
-The scraper (`src/main.py`) runs via `scraping_run.yml` (daily at 10:30 UTC, also manually dispatchable).
+The scraper (`src/main.py`) runs via `scraping_run.yml` (cron 05:07 UTC, also manually dispatchable). GitHub queues scheduled runs hours late, so the cron is set early to land around midday local time.
 
 Modules in `src/`:
 - `scraper.py` — Selenium driver setup and pollen data extraction

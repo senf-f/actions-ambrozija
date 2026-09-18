@@ -2,7 +2,9 @@ name: run main.py
 
 on:
   schedule:
-    - cron: '30 10 * * *'  # every day at 10:30
+    # GitHub queues scheduled runs 3-5 h late, so aim early and off the hour
+    # to land around 11-12 local. Retune if the observed delay changes.
+    - cron: '7 5 * * *'
   workflow_dispatch:
 
 jobs:
