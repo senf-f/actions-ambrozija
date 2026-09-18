@@ -10,6 +10,9 @@ from src.config import BASE_DIR
 
 TEST_CSV = os.path.join(BASE_DIR, "data", "test", "test_output.csv")
 
+RAGWEED = Biljka.AMBROZIJA.value
+TREND_CITIES = ("Zagreb", "Split")
+
 
 def save_to_csv(city, plant, pollen_data):
     """Write pollen data to a CSV file."""
@@ -55,6 +58,36 @@ def unknown_plants(scraped_names):
     return sorted(set(scraped_names) - {biljka.value for biljka in Biljka})
 
 
+def trend_message(city, values):
+    """One ragweed alert line for a city, or None. Values oldest to newest."""
+    if len(values) >= 3 and values[-3] < values[-2] < values[-1]:
+        return (f"Ambrozija {city}: raste treći dan zaredom "
+                f"({values[-3]:.1f} -> {values[-2]:.1f} -> {values[-1]:.1f})")
+    if len(values) >= 2 and values[-2] - values[-1] > 1:
+        return (f"Ambrozija {city}: pala za {values[-2] - values[-1]:.1f} "
+                f"({values[-2]:.1f} -> {values[-1]:.1f})")
+    return None
+
+
+def ragweed_alerts(conn):
+    """Trend alerts from the three most recently stored days per city.
+
+    Deliberately compares stored rows, not calendar days, so a gap in scraping
+    still gets compared instead of silently skipped.
+    """
+    messages = []
+    for city in TREND_CITIES:
+        rows = conn.execute(
+            "SELECT pollen_concentration FROM pollen_data "
+            "WHERE city = ? AND plant = ? ORDER BY date DESC LIMIT 3",
+            (city, RAGWEED),
+        ).fetchall()
+        message = trend_message(city, [float(row[0]) for row in reversed(rows)])
+        if message:
+            messages.append(message)
+    return messages
+
+
 def main(dry_run=False):
     """Scrape every city. dry_run stores nothing but the single test CSV, so a
     probe run can prove the site is still scrapable without touching the data.
@@ -80,7 +113,9 @@ def main(dry_run=False):
                                   date=now.date().isoformat())
 
     driver.quit()
+    alerts = []
     if conn:
+        alerts = ragweed_alerts(conn)
         conn.close()
     if dry_run:
         save_test_csv(scraped)
@@ -88,7 +123,9 @@ def main(dry_run=False):
 
     nove = unknown_plants(seen_plants)
     if nove:
-        telegram.send(f"Nove biljke: {', '.join(nove)}")
+        alerts.insert(0, f"Nove biljke: {', '.join(nove)}")
+    if alerts:
+        telegram.send("\n".join(alerts))
 
     print(f"Execution time: {perf_counter() - start} seconds.")
 
