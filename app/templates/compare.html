@@ -15,8 +15,8 @@
         <div class="filter-group">
           <label>Usporedi po</label>
           <div class="pill-group">
-            <button type="button" class="pill active" data-mode="cities">Gradovima</button>
-            <button type="button" class="pill" data-mode="years">Godinama</button>
+            <button type="button" class="pill" data-mode="cities">Gradovima</button>
+            <button type="button" class="pill active" data-mode="years">Godinama</button>
           </div>
         </div>
 
@@ -33,7 +33,7 @@
           </div>
         </div>
 
-        <div class="filter-group" id="fixed-city-group" style="display:none">
+        <div class="filter-group" id="fixed-city-group">
           <label for="fixed-city">Grad</label>
           <select id="fixed-city">
             {% for city in cities %}
@@ -42,7 +42,7 @@
           </select>
         </div>
 
-        <div class="filter-group" id="fixed-year-group">
+        <div class="filter-group" id="fixed-year-group" style="display:none">
           <label for="fixed-year">Godina</label>
           <select id="fixed-year">
             {% for year in years %}
@@ -52,9 +52,9 @@
         </div>
 
         <div class="filter-group filter-group-wide">
-          <label id="periods-label">Gradovi</label>
+          <label id="periods-label">Godine</label>
           <div id="periods" class="periods"></div>
-          <button type="button" id="add-period" class="plant-action-btn">+ Dodaj grad</button>
+          <button type="button" id="add-period" class="plant-action-btn">+ Dodaj godinu</button>
         </div>
 
         <button type="button" id="apply-btn" class="btn">Primijeni</button>
@@ -137,7 +137,7 @@
       cities: { options: CITIES, rowClass: 'period-city', label: 'Gradovi', add: '+ Dodaj grad' },
       years: { options: YEARS, rowClass: 'period-year', label: 'Godine', add: '+ Dodaj godinu' }
     };
-    let mode = 'cities';
+    let mode = 'years';
 
     function rowSelects() {
       return [...document.querySelectorAll('.period-row select')];
@@ -212,14 +212,15 @@
       document.getElementById('periods-label').textContent = MODES[mode].label;
       document.getElementById('add-period').textContent = MODES[mode].add;
 
-      // Two rows, so either mode opens as a comparison rather than one line.
-      const periodsEl = document.getElementById('periods');
+      // Two rows, so either mode opens as a comparison rather than one line;
+      // the preferred cities fall back to the first available ones.
       const options = MODES[mode].options;
-      const first = mode === 'cities' && CITIES.includes('Zagreb') ? 'Zagreb' : options[0];
-      const second = options.find(v => v !== first);
+      const preferred = mode === 'cities'
+        ? ['Zagreb', 'Split'].filter(c => CITIES.includes(c)) : [];
+      const periodsEl = document.getElementById('periods');
       periodsEl.innerHTML = '';
-      if (first !== undefined) periodsEl.appendChild(buildRow(first));
-      if (second !== undefined) periodsEl.appendChild(buildRow(second));
+      [...new Set([...preferred, ...options])].slice(0, 2)
+        .forEach(v => periodsEl.appendChild(buildRow(v)));
       syncControls();
     }
 
@@ -524,7 +525,7 @@
         });
       }
 
-      setMode('cities');
+      setMode('years');
 
       document.querySelectorAll('[data-mode]').forEach(pill => {
         pill.addEventListener('click', async () => {
