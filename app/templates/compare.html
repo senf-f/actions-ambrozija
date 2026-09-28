@@ -13,6 +13,14 @@
     <div class="filter-card">
       <form id="filter-form">
         <div class="filter-group">
+          <label>Usporedi po</label>
+          <div class="pill-group">
+            <button type="button" class="pill active" data-mode="cities">Gradovima</button>
+            <button type="button" class="pill" data-mode="years">Godinama</button>
+          </div>
+        </div>
+
+        <div class="filter-group">
           <label for="plant-select">Biljka</label>
           <select id="plant-select"></select>
         </div>
@@ -25,8 +33,26 @@
           </div>
         </div>
 
+        <div class="filter-group" id="fixed-city-group" style="display:none">
+          <label for="fixed-city">Grad</label>
+          <select id="fixed-city">
+            {% for city in cities %}
+            <option value="{{ city }}" {% if city == 'Zagreb' or (loop.first and 'Zagreb' not in cities) %}selected{% endif %}>{{ city }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group" id="fixed-year-group">
+          <label for="fixed-year">Godina</label>
+          <select id="fixed-year">
+            {% for year in years %}
+            <option value="{{ year }}">{{ year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
         <div class="filter-group filter-group-wide">
-          <label>Gradovi i godine</label>
+          <label id="periods-label">Gradovi</label>
           <div id="periods" class="periods"></div>
           <button type="button" id="add-period" class="plant-action-btn">+ Dodaj grad</button>
         </div>
@@ -105,23 +131,31 @@
       return dateStr.slice(5); // 'YYYY-MM-DD' -> 'MM-DD'
     }
 
-    function buildSeriesRow(city, year) {
+    // One dimension varies per row and the other is fixed for the whole chart,
+    // so neighbouring lines always differ in exactly one way.
+    const MODES = {
+      cities: { options: CITIES, rowClass: 'period-city', label: 'Gradovi', add: '+ Dodaj grad' },
+      years: { options: YEARS, rowClass: 'period-year', label: 'Godine', add: '+ Dodaj godinu' }
+    };
+    let mode = 'cities';
+
+    function rowSelects() {
+      return [...document.querySelectorAll('.period-row select')];
+    }
+
+    function buildRow(value) {
       const row = document.createElement('div');
       row.className = 'period-row';
 
-      const citySelect = document.createElement('select');
-      citySelect.className = 'period-city';
-      CITIES.forEach(c => citySelect.add(new Option(c, c, false, c === city)));
-      citySelect.addEventListener('change', async () => {
-        syncSeries();
+      const select = document.createElement('select');
+      select.className = MODES[mode].rowClass;
+      MODES[mode].options.forEach(v =>
+        select.add(new Option(v, v, false, String(v) === String(value))));
+      select.addEventListener('change', async () => {
+        syncRows();
         await loadPlants();
         fetchAndRender();
       });
-
-      const yearSelect = document.createElement('select');
-      yearSelect.className = 'period-year';
-      YEARS.forEach(y => yearSelect.add(new Option(y, y, false, String(y) === String(year))));
-      yearSelect.addEventListener('change', () => { syncSeries(); fetchAndRender(); });
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -136,63 +170,57 @@
         }
       });
 
-      row.append(citySelect, yearSelect, removeBtn);
+      row.append(select, removeBtn);
       return row;
     }
 
-    function pairKey(row) {
-      return `${row.querySelector('.period-city').value}`
-        + `|${row.querySelector('.period-year').value}`;
-    }
-
-    // A row is one (city, year) series, so the same pair twice would only draw
-    // one line on top of another.
-    function syncSeries() {
-      const rows = [...document.querySelectorAll('.period-row')];
-      const taken = new Set(rows.map(pairKey));
-      rows.forEach(row => {
-        const citySel = row.querySelector('.period-city');
-        const yearSel = row.querySelector('.period-year');
-        for (const opt of citySel.options) {
-          opt.disabled = opt.value !== citySel.value
-            && taken.has(`${opt.value}|${yearSel.value}`);
-        }
-        for (const opt of yearSel.options) {
-          opt.disabled = opt.value !== yearSel.value
-            && taken.has(`${citySel.value}|${opt.value}`);
+    function syncRows() {
+      const picked = new Set(rowSelects().map(s => s.value));
+      rowSelects().forEach(sel => {
+        for (const opt of sel.options) {
+          opt.disabled = opt.value !== sel.value && picked.has(opt.value);
         }
       });
     }
 
     function syncControls() {
       document.getElementById('add-period').disabled =
-        document.querySelectorAll('.period-row').length >= CITIES.length * YEARS.length;
-      syncSeries();
+        rowSelects().length >= MODES[mode].options.length;
+      syncRows();
     }
 
     function readSeries() {
-      return [...document.querySelectorAll('.period-row')]
-        .map(row => ({
-          city: row.querySelector('.period-city').value,
-          year: parseInt(row.querySelector('.period-year').value, 10)
-        }))
+      const fixedCity = document.getElementById('fixed-city').value;
+      const fixedYear = document.getElementById('fixed-year').value;
+      return rowSelects()
+        .map(sel => mode === 'cities'
+          ? { city: sel.value, year: parseInt(fixedYear, 10) }
+          : { city: fixedCity, year: parseInt(sel.value, 10) })
         .filter(s => s.city && Number.isInteger(s.year));
     }
 
-    // Years outermost, so adding a row prefers another city in the same year —
-    // the city comparison — over the same city in another year.
-    function firstFreePair() {
-      const taken = new Set([...document.querySelectorAll('.period-row')].map(pairKey));
-      for (const year of YEARS) {
-        for (const city of CITIES) {
-          if (!taken.has(`${city}|${year}`)) return { city, year };
-        }
-      }
-      return null;
+    function seriesLabel(s) {
+      return mode === 'cities' ? s.city : String(s.year);
     }
 
-    function seriesLabel(series, s) {
-      return series.every(o => o.year === series[0].year) ? s.city : `${s.city} ${s.year}`;
+    function setMode(next) {
+      mode = next;
+      document.querySelectorAll('[data-mode]').forEach(pill =>
+        pill.classList.toggle('active', pill.dataset.mode === mode));
+      document.getElementById('fixed-city-group').style.display = mode === 'years' ? '' : 'none';
+      document.getElementById('fixed-year-group').style.display = mode === 'cities' ? '' : 'none';
+      document.getElementById('periods-label').textContent = MODES[mode].label;
+      document.getElementById('add-period').textContent = MODES[mode].add;
+
+      // Two rows, so either mode opens as a comparison rather than one line.
+      const periodsEl = document.getElementById('periods');
+      const options = MODES[mode].options;
+      const first = mode === 'cities' && CITIES.includes('Zagreb') ? 'Zagreb' : options[0];
+      const second = options.find(v => v !== first);
+      periodsEl.innerHTML = '';
+      if (first !== undefined) periodsEl.appendChild(buildRow(first));
+      if (second !== undefined) periodsEl.appendChild(buildRow(second));
+      syncControls();
     }
 
     async function loadPlants() {
@@ -416,7 +444,7 @@
         const datasets = [];
         for (const s of series) {
           datasets.push({
-            label: seriesLabel(series, s),
+            label: seriesLabel(s),
             byKey: await fetchPeriod(s.city, plant, s.year)
           });
         }
@@ -426,7 +454,7 @@
           for (const s of series) {
             const byStation = await fetchPeriodRain(s.city, s.year);
             for (const [station, byKey] of Object.entries(byStation)) {
-              rainDatasets.push({ label: `${seriesLabel(series, s)} — ${station} (oborine)`, byKey });
+              rainDatasets.push({ label: `${seriesLabel(s)} — ${station} (oborine)`, byKey });
             }
           }
         }
@@ -438,7 +466,7 @@
             for (const [kind, byKey] of Object.entries(bySeries)) {
               tempDatasets.push({
                 kind,
-                label: `${seriesLabel(series, s)} — ${TEMP_LABELS[kind]}`,
+                label: `${seriesLabel(s)} — ${TEMP_LABELS[kind]}`,
                 byKey
               });
             }
@@ -451,7 +479,7 @@
             const byKey = await fetchPeriodCams(s.city, s.year);
             // CAMS only serves the last ~92 days, so older years come back empty.
             if (Object.keys(byKey).length) {
-              camsDatasets.push({ label: `${seriesLabel(series, s)} — CAMS model`, byKey });
+              camsDatasets.push({ label: `${seriesLabel(s)} — CAMS model`, byKey });
             }
           }
         }
@@ -496,19 +524,29 @@
         });
       }
 
-      // Two cities in the same year, so the page opens on the comparison it
-      // exists for; changing a row's year gives the year comparison back.
-      const firstCity = CITIES.includes('Zagreb') ? 'Zagreb' : CITIES[0];
-      const secondCity = CITIES.find(c => c !== firstCity);
-      const startYear = YEARS[0] ?? String(now.getFullYear());
-      if (firstCity) periodsEl.appendChild(buildSeriesRow(firstCity, startYear));
-      if (secondCity) periodsEl.appendChild(buildSeriesRow(secondCity, startYear));
-      syncControls();
+      setMode('cities');
+
+      document.querySelectorAll('[data-mode]').forEach(pill => {
+        pill.addEventListener('click', async () => {
+          if (pill.dataset.mode === mode) return;
+          setMode(pill.dataset.mode);
+          await loadPlants();
+          fetchAndRender();
+        });
+      });
+
+      for (const id of ['fixed-city', 'fixed-year']) {
+        document.getElementById(id).addEventListener('change', async () => {
+          await loadPlants();
+          fetchAndRender();
+        });
+      }
 
       document.getElementById('add-period').addEventListener('click', async () => {
-        const pair = firstFreePair();
-        if (!pair) return;
-        periodsEl.appendChild(buildSeriesRow(pair.city, pair.year));
+        const used = rowSelects().map(s => s.value);
+        const next = MODES[mode].options.find(v => !used.includes(String(v)));
+        if (next === undefined) return;
+        periodsEl.appendChild(buildRow(next));
         syncControls();
         await loadPlants();
         fetchAndRender();

@@ -10,6 +10,13 @@ class TestComparePage:
         assert "Zagreb" in body
         assert "Split" in body
 
+    def test_renders_compare_mode_switch(self, client_with_data):
+        body = client_with_data.get("/compare").data.decode()
+        assert 'data-mode="cities"' in body
+        assert 'data-mode="years"' in body
+        assert 'id="fixed-city"' in body
+        assert 'id="fixed-year"' in body
+
     def test_omits_city_with_a_single_day(self, client_with_data):
         resp = client_with_data.get("/compare")
         assert "Rijeka" not in resp.data.decode()
