@@ -17,8 +17,7 @@ def test_dry_run_writes_only_the_test_csv(tmp_path, monkeypatch):
     monkeypatch.setattr(main_module.scraper, "get_cities", lambda driver: ["Zagreb"])
     monkeypatch.setattr(main_module.scraper, "get_pollen_data",
                         lambda driver, city: {"Trave (Poaceae)": "1.5"})
-    monkeypatch.setattr(main_module, "save_to_csv", fail)
-    monkeypatch.setattr(db_handler, "insert", fail)
+    monkeypatch.setattr(main_module.pollen_record, "record", fail)
     monkeypatch.setattr(db_handler, "setup_db", fail)
     monkeypatch.setattr(main_module, "TEST_CSV", str(tmp_path / "test_output.csv"))
 

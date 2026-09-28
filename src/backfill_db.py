@@ -2,12 +2,9 @@
 import os
 import re
 
-from src.biljke import Biljka
-from src.config import BASE_DIR
 from src.db_handler import setup_db
+from src.pollen_record import DATA_DIR, UPSERT, parse_filename
 
-DATA_DIR = os.path.join(BASE_DIR, "data")
-FILENAME_RE = re.compile(r'^(.+?) - ([A-Z_]+) pelud za (\d+)\.(\d+)(\.csv)?$')
 DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
 
@@ -17,20 +14,6 @@ def is_float(s):
         return True
     except ValueError:
         return False
-
-
-def parse_filename(filename):
-    """Return (city, plant_full_name) or None."""
-    match = FILENAME_RE.match(filename)
-    if not match:
-        return None
-    city = match.group(1)
-    plant_enum = match.group(2)
-    try:
-        plant_full = Biljka[plant_enum].value
-    except KeyError:
-        return None
-    return city, plant_full
 
 
 def parse_line(line):
@@ -87,12 +70,7 @@ def main():
                         stats['skipped_lines'] += 1
                         continue
                     conc, date_str = result
-                    cursor.execute(
-                        'INSERT OR REPLACE INTO pollen_data '
-                        '(city, plant, pollen_concentration, date) '
-                        'VALUES (?, ?, ?, ?)',
-                        (city, plant, conc, date_str)
-                    )
+                    cursor.execute(UPSERT, (city, plant, conc, date_str))
                     stats['rows'] += 1
 
             conn.commit()

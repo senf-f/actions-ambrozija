@@ -4,40 +4,14 @@ import os
 import sys
 from time import perf_counter
 
-from src import db_handler, scraper, telegram
-from src.biljke import BILJKA_LOOKUP, Biljka
+from src import db_handler, pollen_record, scraper, telegram
+from src.biljke import Biljka
 from src.config import BASE_DIR
 
 TEST_CSV = os.path.join(BASE_DIR, "data", "test", "test_output.csv")
 
 RAGWEED = Biljka.AMBROZIJA.value
 TREND_CITIES = ("Zagreb", "Split")
-
-
-def save_to_csv(city, plant, pollen_data):
-    """Write pollen data to a CSV file."""
-    now = datetime.datetime.now()
-    dir_path = os.path.join(BASE_DIR, "data", str(now.year), str(now.month))
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-
-    enum_biljke = BILJKA_LOOKUP.get(plant, None)
-    if enum_biljke:
-        plant = enum_biljke
-
-    file_path = os.path.join(
-        dir_path,
-        f"{city} - {plant} pelud za {now.month}.{now.year}.csv"
-    )
-
-    file_exists = os.path.isfile(file_path)
-    with open(file_path, "a", newline='', encoding="utf-8") as f:
-        writer = csv.writer(f)
-
-        if not file_exists:
-            writer.writerow(["pollen_concentration", "timestamp"])
-
-        writer.writerow([pollen_data, now.strftime("%Y-%m-%d %H:%M:%S")])
 
 
 def save_test_csv(rows):
@@ -93,35 +67,31 @@ def main(dry_run=False):
     probe run can prove the site is still scrapable without touching the data.
     """
     start = perf_counter()
-    conn = None if dry_run else db_handler.setup_db()
     driver = scraper.initialize_driver()
     scraper.accept_cookies(driver)
 
     now = datetime.datetime.now()
-    seen_plants = set()
-    scraped = []
+    scraped = {}
     for city in scraper.get_cities(driver):
-        pollen_data = scraper.get_pollen_data(driver, city)
-        seen_plants.update(pollen_data)
-        for plant, value in pollen_data.items():
+        scraped[city] = scraper.get_pollen_data(driver, city)
+        for plant, value in scraped[city].items():
             print(f"{city}: {plant}: {value}")
-            scraped.append((city, plant, value, now.strftime("%Y-%m-%d %H:%M:%S")))
-            if not dry_run:
-                save_to_csv(city=city, plant=plant, pollen_data=value)
-                db_handler.insert(conn, "pollen_data", city=city, plant=plant,
-                                  pollen_concentration=value,
-                                  date=now.date().isoformat())
-
     driver.quit()
+
     alerts = []
-    if conn:
+    if dry_run:
+        stamp = now.strftime("%Y-%m-%d %H:%M:%S")
+        save_test_csv([(city, plant, value, stamp)
+                       for city, plants in scraped.items()
+                       for plant, value in plants.items()])
+        print(f"\nResults written to {TEST_CSV}")
+    else:
+        conn = db_handler.setup_db()
+        pollen_record.record(conn, scraped, now)
         alerts = ragweed_alerts(conn)
         conn.close()
-    if dry_run:
-        save_test_csv(scraped)
-        print(f"\nResults written to {TEST_CSV}")
 
-    nove = unknown_plants(seen_plants)
+    nove = unknown_plants({plant for plants in scraped.values() for plant in plants})
     if nove:
         alerts.insert(0, f"Nove biljke: {', '.join(nove)}")
     if alerts:

@@ -13,6 +13,7 @@ The scraper (`src/main.py`) runs via `scraping_run.yml` (cron 05:07 UTC, also ma
 Modules in `src/`:
 - `scraper.py` — Selenium driver setup and pollen data extraction
 - `db_handler.py` — SQLite setup and insert (DB stored at `db/pollen_data.db`)
+- `pollen_record.py` — writes a scrape to the monthly CSVs and `pollen_data`, one row per day in both, and owns the CSV filename layout `backfill_db.py` reads back
 - `config.py` — Paths, URLs, and constants
 - `biljke.py` — Plant species enum (`Biljka`) with reverse lookup dict
 - `telegram.py` — Sends alerts via Telegram Bot API; a no-op when the env vars are unset
