@@ -220,6 +220,11 @@ body::after {
   z-index: 1;
 }
 
+.period-row .period-city {
+  min-width: 0;
+  width: 170px;
+}
+
 .period-row .period-year {
   min-width: 0;
   width: 110px;

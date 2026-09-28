@@ -95,9 +95,14 @@ def pollen_chart():
     """Both chart pages: same dropdowns, different template.
 
     The current year is always offered even before its first reading lands.
+
+    Cities with a single day of readings are left out: a one-off 2024-11-01 run
+    stored 17 cities that never got a second reading, and they would only offer
+    dropdown entries that draw an empty chart.
     """
     cities = [row[0] for row in
-              _rows('SELECT DISTINCT city FROM pollen_data ORDER BY city ASC')]
+              _rows('SELECT city FROM pollen_data GROUP BY city '
+                    'HAVING COUNT(DISTINCT date(date)) > 1 ORDER BY city ASC')]
     stored_years = {row[0] for row in
                     _rows('SELECT DISTINCT strftime("%Y", date) FROM pollen_data')}
     years = sorted(stored_years | {str(date.today().year)}, reverse=True)

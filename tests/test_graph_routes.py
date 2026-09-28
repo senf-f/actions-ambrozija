@@ -110,7 +110,7 @@ class TestGraphDataApi:
             "/api/graph-data?city=Split&date_from=2026-03-01&date_to=2026-03-31"
         )
         rows = resp.get_json()
-        assert len(rows) == 1
+        assert len(rows) == 2
         assert all(r["plant"] == "Maslina (Olea sp.)" for r in rows)
 
     def test_ordered_by_date_asc(self, client_with_data):

@@ -3,12 +3,16 @@ class TestComparePage:
         resp = client.get("/compare")
         assert resp.status_code == 200
 
-    def test_renders_city_select(self, client_with_data):
+    def test_renders_series_city_options(self, client_with_data):
         resp = client_with_data.get("/compare")
         body = resp.data.decode()
-        assert "city-select" in body
+        assert "period-city" in body
         assert "Zagreb" in body
         assert "Split" in body
+
+    def test_omits_city_with_a_single_day(self, client_with_data):
+        resp = client_with_data.get("/compare")
+        assert "Rijeka" not in resp.data.decode()
 
     def test_cities_sorted_alphabetically(self, client_with_data):
         resp = client_with_data.get("/compare")

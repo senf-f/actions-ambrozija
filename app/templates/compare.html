@@ -2,7 +2,7 @@
 
 {% block title %}Usporedba peludi{% endblock %}
 {% block heading %}Usporedba koncentracije peludi{% endblock %}
-{% block subtitle %}Jedna biljka i grad kroz različita razdoblja{% endblock %}
+{% block subtitle %}Jedna biljka kroz gradove i razdoblja{% endblock %}
 
 {% block head %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
@@ -12,15 +12,6 @@
 {% block content %}
     <div class="filter-card">
       <form id="filter-form">
-        <div class="filter-group">
-          <label for="city-select">Grad</label>
-          <select id="city-select">
-            {% for city in cities %}
-            <option value="{{ city }}" {% if city == 'Zagreb' or (loop.first and 'Zagreb' not in cities) %}selected{% endif %}>{{ city }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
         <div class="filter-group">
           <label for="plant-select">Biljka</label>
           <select id="plant-select"></select>
@@ -35,9 +26,9 @@
         </div>
 
         <div class="filter-group filter-group-wide">
-          <label>Godine</label>
+          <label>Gradovi i godine</label>
           <div id="periods" class="periods"></div>
-          <button type="button" id="add-period" class="plant-action-btn">+ Dodaj godinu</button>
+          <button type="button" id="add-period" class="plant-action-btn">+ Dodaj grad</button>
         </div>
 
         <button type="button" id="apply-btn" class="btn">Primijeni</button>
@@ -73,6 +64,7 @@
       'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'
     ];
     const TEMP_LABELS = { air: 'maks. zrak', sea: 'more 8h' };
+    const CITIES = {{ cities | tojson }};
     const YEARS = {{ years | tojson }};
 
     let chart = null;
@@ -113,63 +105,110 @@
       return dateStr.slice(5); // 'YYYY-MM-DD' -> 'MM-DD'
     }
 
-    function buildYearRow(year) {
+    function buildSeriesRow(city, year) {
       const row = document.createElement('div');
       row.className = 'period-row';
 
-      const select = document.createElement('select');
-      select.className = 'period-year';
-      YEARS.forEach(y => select.add(new Option(y, y, false, y === String(year))));
-      select.addEventListener('change', () => { syncYears(); fetchAndRender(); });
+      const citySelect = document.createElement('select');
+      citySelect.className = 'period-city';
+      CITIES.forEach(c => citySelect.add(new Option(c, c, false, c === city)));
+      citySelect.addEventListener('change', async () => {
+        syncSeries();
+        await loadPlants();
+        fetchAndRender();
+      });
+
+      const yearSelect = document.createElement('select');
+      yearSelect.className = 'period-year';
+      YEARS.forEach(y => yearSelect.add(new Option(y, y, false, String(y) === String(year))));
+      yearSelect.addEventListener('change', () => { syncSeries(); fetchAndRender(); });
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'plant-action-btn period-remove';
       removeBtn.textContent = '✕';
-      removeBtn.addEventListener('click', () => {
+      removeBtn.addEventListener('click', async () => {
         if (document.querySelectorAll('.period-row').length > 1) {
           row.remove();
           syncControls();
+          await loadPlants();
           fetchAndRender();
         }
       });
 
-      row.append(select, removeBtn);
+      row.append(citySelect, yearSelect, removeBtn);
       return row;
     }
 
-    function syncYears() {
-      const picked = new Set([...document.querySelectorAll('.period-year')].map(s => s.value));
-      document.querySelectorAll('.period-year').forEach(sel => {
-        for (const opt of sel.options) {
-          opt.disabled = opt.value !== sel.value && picked.has(opt.value);
+    function pairKey(row) {
+      return `${row.querySelector('.period-city').value}`
+        + `|${row.querySelector('.period-year').value}`;
+    }
+
+    // A row is one (city, year) series, so the same pair twice would only draw
+    // one line on top of another.
+    function syncSeries() {
+      const rows = [...document.querySelectorAll('.period-row')];
+      const taken = new Set(rows.map(pairKey));
+      rows.forEach(row => {
+        const citySel = row.querySelector('.period-city');
+        const yearSel = row.querySelector('.period-year');
+        for (const opt of citySel.options) {
+          opt.disabled = opt.value !== citySel.value
+            && taken.has(`${opt.value}|${yearSel.value}`);
+        }
+        for (const opt of yearSel.options) {
+          opt.disabled = opt.value !== yearSel.value
+            && taken.has(`${citySel.value}|${opt.value}`);
         }
       });
     }
 
     function syncControls() {
       document.getElementById('add-period').disabled =
-        document.querySelectorAll('.period-row').length >= YEARS.length;
-      syncYears();
+        document.querySelectorAll('.period-row').length >= CITIES.length * YEARS.length;
+      syncSeries();
     }
 
-    function readYears() {
-      return [...document.querySelectorAll('.period-year')]
-        .map(sel => parseInt(sel.value, 10)).filter(Number.isInteger);
+    function readSeries() {
+      return [...document.querySelectorAll('.period-row')]
+        .map(row => ({
+          city: row.querySelector('.period-city').value,
+          year: parseInt(row.querySelector('.period-year').value, 10)
+        }))
+        .filter(s => s.city && Number.isInteger(s.year));
     }
 
-    async function loadPlants(city) {
+    // Years outermost, so adding a row prefers another city in the same year —
+    // the city comparison — over the same city in another year.
+    function firstFreePair() {
+      const taken = new Set([...document.querySelectorAll('.period-row')].map(pairKey));
+      for (const year of YEARS) {
+        for (const city of CITIES) {
+          if (!taken.has(`${city}|${year}`)) return { city, year };
+        }
+      }
+      return null;
+    }
+
+    function seriesLabel(series, s) {
+      return series.every(o => o.year === series[0].year) ? s.city : `${s.city} ${s.year}`;
+    }
+
+    async function loadPlants() {
       const plantSelect = document.getElementById('plant-select');
+      const previous = plantSelect.value;
+      const cities = [...new Set(readSeries().map(s => s.city))];
+      const lists = await Promise.all(cities.map(async city => {
+        const resp = await fetch(`/api/plants?city=${encodeURIComponent(city)}`);
+        return resp.ok ? resp.json() : [];
+      }));
+      // Cities don't always share a plant list, so the union is offered and a
+      // city missing the pick just draws no line.
+      const plants = [...new Set(lists.flat())].sort();
       plantSelect.innerHTML = '';
-      if (!city) return;
-      const resp = await fetch(`/api/plants?city=${encodeURIComponent(city)}`);
-      if (!resp.ok) return;
-      const plants = await resp.json();
       plants.forEach(plant => {
-        const opt = document.createElement('option');
-        opt.value = plant;
-        opt.textContent = plant;
-        plantSelect.appendChild(opt);
+        plantSelect.add(new Option(plant, plant, false, plant === previous));
       });
     }
 
@@ -352,23 +391,22 @@
       const chartWrapper = document.getElementById('chart-wrapper');
 
       try {
-        const city = document.getElementById('city-select').value;
-        const plant = document.getElementById('plant-select').value;
-
-        if (!city) {
+        if (CITIES.length === 0) {
           errorMsg.textContent = 'Nema dostupnih gradova';
           errorMsg.style.display = '';
           return;
         }
+
+        const plant = document.getElementById('plant-select').value;
         if (!plant) {
           errorMsg.textContent = 'Odaberite biljku';
           errorMsg.style.display = '';
           return;
         }
 
-        const years = readYears();
-        if (years.length === 0) {
-          errorMsg.textContent = 'Dodajte barem jednu godinu';
+        const series = readSeries();
+        if (series.length === 0) {
+          errorMsg.textContent = 'Dodajte barem jedan grad';
           errorMsg.style.display = '';
           return;
         }
@@ -376,37 +414,44 @@
         errorMsg.style.display = 'none';
 
         const datasets = [];
-        for (const year of years) {
-          datasets.push({ label: String(year), byKey: await fetchPeriod(city, plant, year) });
+        for (const s of series) {
+          datasets.push({
+            label: seriesLabel(series, s),
+            byKey: await fetchPeriod(s.city, plant, s.year)
+          });
         }
 
         const rainDatasets = [];
         if (document.getElementById('rain-toggle').checked) {
-          for (const year of years) {
-            const byStation = await fetchPeriodRain(city, year);
+          for (const s of series) {
+            const byStation = await fetchPeriodRain(s.city, s.year);
             for (const [station, byKey] of Object.entries(byStation)) {
-              rainDatasets.push({ label: `${year} — ${station} (oborine)`, byKey });
+              rainDatasets.push({ label: `${seriesLabel(series, s)} — ${station} (oborine)`, byKey });
             }
           }
         }
 
         const tempDatasets = [];
         if (document.getElementById('temp-toggle').checked) {
-          for (const year of years) {
-            const bySeries = await fetchPeriodTemp(city, year);
+          for (const s of series) {
+            const bySeries = await fetchPeriodTemp(s.city, s.year);
             for (const [kind, byKey] of Object.entries(bySeries)) {
-              tempDatasets.push({ kind, label: `${year} — ${TEMP_LABELS[kind]}`, byKey });
+              tempDatasets.push({
+                kind,
+                label: `${seriesLabel(series, s)} — ${TEMP_LABELS[kind]}`,
+                byKey
+              });
             }
           }
         }
 
         const camsDatasets = [];
         if (document.getElementById('cams-toggle').checked) {
-          for (const year of years) {
-            const byKey = await fetchPeriodCams(city, year);
+          for (const s of series) {
+            const byKey = await fetchPeriodCams(s.city, s.year);
             // CAMS only serves the last ~92 days, so older years come back empty.
             if (Object.keys(byKey).length) {
-              camsDatasets.push({ label: `${year} — CAMS model`, byKey });
+              camsDatasets.push({ label: `${seriesLabel(series, s)} — CAMS model`, byKey });
             }
           }
         }
@@ -423,7 +468,8 @@
         }
 
         noDataMsg.style.display = 'none';
-        renderChart(axisKeys(years), datasets, rainDatasets, tempDatasets, camsDatasets);
+        renderChart(axisKeys(series.map(s => s.year)),
+                    datasets, rainDatasets, tempDatasets, camsDatasets);
 
       } catch (err) {
         errorMsg.textContent = 'Greška mreže';
@@ -450,21 +496,21 @@
         });
       }
 
-      periodsEl.appendChild(buildYearRow(YEARS[0] ?? now.getFullYear()));
-      if (YEARS[1]) periodsEl.appendChild(buildYearRow(YEARS[1]));
+      // Two cities in the same year, so the page opens on the comparison it
+      // exists for; changing a row's year gives the year comparison back.
+      const firstCity = CITIES.includes('Zagreb') ? 'Zagreb' : CITIES[0];
+      const secondCity = CITIES.find(c => c !== firstCity);
+      const startYear = YEARS[0] ?? String(now.getFullYear());
+      if (firstCity) periodsEl.appendChild(buildSeriesRow(firstCity, startYear));
+      if (secondCity) periodsEl.appendChild(buildSeriesRow(secondCity, startYear));
       syncControls();
 
-      document.getElementById('add-period').addEventListener('click', () => {
-        // First year not already picked, so a new row is never a duplicate.
-        const used = readYears().map(String);
-        periodsEl.appendChild(buildYearRow(
-          YEARS.find(y => !used.includes(y)) ?? YEARS.at(-1)));
+      document.getElementById('add-period').addEventListener('click', async () => {
+        const pair = firstFreePair();
+        if (!pair) return;
+        periodsEl.appendChild(buildSeriesRow(pair.city, pair.year));
         syncControls();
-        fetchAndRender();
-      });
-
-      document.getElementById('city-select').addEventListener('change', async () => {
-        await loadPlants(document.getElementById('city-select').value);
+        await loadPlants();
         fetchAndRender();
       });
 
@@ -473,7 +519,7 @@
       document.getElementById('temp-toggle').addEventListener('change', () => { fetchAndRender(); });
       document.getElementById('cams-toggle').addEventListener('change', () => { fetchAndRender(); });
 
-      await loadPlants(document.getElementById('city-select').value);
+      await loadPlants();
       fetchAndRender();
     });
   </script>

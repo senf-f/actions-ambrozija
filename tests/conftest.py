@@ -33,6 +33,9 @@ def client_with_data(client):
             ("Zagreb", "Trave (Poaceae)", "1.0", "2026-03-01"),
             ("Zagreb", "Trave (Poaceae)", "bad_value", "2026-03-03"),  # non-numeric — must be excluded
             ("Split", "Maslina (Olea sp.)", "4.0", "2026-03-01"),
+            ("Split", "Maslina (Olea sp.)", "4.5", "2026-03-02"),
+            # Single day of readings — must be excluded from the chart dropdowns
+            ("Rijeka", "Trave (Poaceae)", "1.5", "2026-03-01"),
         ],
     )
     conn.executemany(
