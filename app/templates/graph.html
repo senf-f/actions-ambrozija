@@ -80,8 +80,8 @@
 
 {% block scripts %}
   <script>
-    let chart = null;
     let currentData = null;
+    let renderGen = 0;
     let plantColors = {};
     let activePlants = new Set();
     let rainByStation = {};
@@ -126,177 +126,67 @@
     }
 
     function renderChart() {
-      const chartWrapper = document.getElementById('chart-wrapper');
-      const canvas = document.getElementById('pollen-chart');
-
       if (!currentData) return;
-
       const { byPlant, dates } = currentData;
-      const activeEntries = Object.entries(byPlant).filter(([plant]) => activePlants.has(plant));
 
-      if (activeEntries.length === 0) {
-        if (chart) { chart.destroy(); chart = null; }
-        chartWrapper.style.display = 'none';
-        return;
-      }
-
-      chartWrapper.style.display = '';
-
-      const datasets = activeEntries.map(([plant, dateMap]) => {
-        const color = plantColors[plant];
-        return {
-          label: plant,
-          data: dates.map(d => dateMap[d] ?? null),
-          borderColor: color,
-          backgroundColor: color + '18',
-          tension: 0.35,
-          spanGaps: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          borderWidth: 2.5,
-          order: 1
-        };
-      });
-
-      const showRain = document.getElementById('rain-toggle').checked;
-      const stations = Object.keys(rainByStation);
-      if (showRain) {
-        stations.forEach((station, i) => {
-          const color = RAIN_COLORS[i % RAIN_COLORS.length];
-          const dateMap = rainByStation[station];
-          datasets.push({
-            label: station + ' (oborine)',
-            type: 'bar',
-            data: dates.map(d => dateMap[d] ?? null),
-            backgroundColor: color + '66',
-            borderColor: color,
-            borderWidth: 1,
-            yAxisID: 'y1',
-            order: 2
-          });
-        });
-      }
-
-      const showCams = document.getElementById('cams-toggle').checked;
-      const camsDates = Object.keys(camsByDate);
-      if (showCams && camsDates.length > 0) {
-        datasets.push({
-          label: 'Ambrozija — CAMS model',
-          data: dates.map(d => camsByDate[d] ?? null),
-          borderColor: CAMS_COLOR,
-          backgroundColor: 'transparent',
-          borderDash: [6, 4],
-          tension: 0.35,
-          spanGaps: true,
-          pointRadius: 0,
-          pointHoverRadius: 5,
-          borderWidth: 2,
-          yAxisID: 'y2',
-          order: 0
-        });
-      }
-
-      const scales = {
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Koncentracija' },
-          grid: { color: 'rgba(0,0,0,0.04)' }
-        },
-        x: {
-          type: 'category',
-          title: { display: true, text: 'Datum' },
-          grid: { display: false },
-          ticks: {
-            callback: function(val) { return parseInt(this.getLabelForValue(val).split('-')[2], 10) + '.'; }
-          }
+      const canvas = document.getElementById('pollen-chart');
+      const series = Object.entries(byPlant)
+        .filter(([plant]) => activePlants.has(plant))
+        .map(([plant, byKey]) => ({ kind: 'pollen', label: plant, byKey, color: plantColors[plant] }));
+      // Overlays only give context to plants, so with none picked there is no chart.
+      if (series.length === 0) return clearChart(canvas);
+      if (document.getElementById('rain-toggle').checked) {
+        for (const [station, byKey] of Object.entries(rainByStation)) {
+          series.push({ kind: 'rain', label: station + ' (oborine)', byKey });
         }
-      };
-
-      if (showRain && stations.length > 0) {
-        scales.y1 = {
-          beginAtZero: true,
-          position: 'right',
-          title: { display: true, text: 'Oborine (mm)', color: '#2980b9' },
-          grid: { drawOnChartArea: false },
-          ticks: { color: '#2980b9' }
-        };
+      }
+      if (document.getElementById('cams-toggle').checked) {
+        series.push({ kind: 'cams', label: 'Ambrozija — CAMS model', byKey: camsByDate });
       }
 
-      if (showCams && camsDates.length > 0) {
-        scales.y2 = {
-          beginAtZero: true,
-          position: 'right',
-          title: { display: true, text: 'Ambrozija CAMS (zrnaca/m³)', color: CAMS_COLOR },
-          grid: { drawOnChartArea: false },
-          ticks: { color: CAMS_COLOR }
-        };
-      }
-
-      if (chart) chart.destroy();
-      chart = new Chart(canvas, {
-        type: 'line',
-        data: { labels: dates, datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { display: false } },
-          scales: scales
-        }
-      });
+      // The plant pills act as the legend.
+      drawSeries(canvas, dates, series, { legend: false });
     }
 
     async function fetchAndRender() {
       const errorMsg = document.getElementById('error-msg');
       const noDataMsg = document.getElementById('no-data-msg');
-      const chartWrapper = document.getElementById('chart-wrapper');
       const plantFilter = document.getElementById('plant-filter');
+      // Handlers fire overlapping fetches; only the newest one may draw.
+      const gen = ++renderGen;
+
+      function showEmpty(error) {
+        errorMsg.textContent = error || '';
+        errorMsg.style.display = error ? '' : 'none';
+        noDataMsg.style.display = error ? 'none' : '';
+        plantFilter.style.display = 'none';
+        currentData = null;
+        clearChart(document.getElementById('pollen-chart'));
+      }
 
       try {
         const city = document.getElementById('city-select').value;
-        if (!city) {
-          errorMsg.textContent = 'Nema dostupnih gradova';
-          errorMsg.style.display = '';
-          return;
-        }
+        if (!city) return showEmpty('Nema dostupnih gradova');
 
         const dateFrom = document.getElementById('date-from').value;
         const dateTo = document.getElementById('date-to').value;
+        if (dateFrom > dateTo) return showEmpty('Početni datum ne smije biti nakon završnog');
 
-        if (dateFrom > dateTo) {
-          errorMsg.textContent = 'Početni datum ne smije biti nakon završnog';
-          errorMsg.style.display = '';
-          return;
-        }
-
-        errorMsg.style.display = 'none';
-
-        const url = `/api/graph-data?city=${encodeURIComponent(city)}&date_from=${dateFrom}&date_to=${dateTo}`;
-        const resp = await fetch(url);
+        const query = `city=${encodeURIComponent(city)}&date_from=${dateFrom}&date_to=${dateTo}`;
+        const resp = await fetch(`/api/graph-data?${query}`);
 
         if (!resp.ok) {
           let msg = 'Zahtjev nije uspio';
           try { msg = (await resp.json()).error || msg; } catch (_) {}
-          errorMsg.textContent = msg;
-          errorMsg.style.display = '';
-          chartWrapper.style.display = 'none';
-          plantFilter.style.display = 'none';
-          noDataMsg.style.display = 'none';
+          if (gen === renderGen) showEmpty(msg);
           return;
         }
 
         const rows = await resp.json();
-
         if (rows.length === 0) {
-          if (chart) { chart.destroy(); chart = null; }
-          chartWrapper.style.display = 'none';
-          plantFilter.style.display = 'none';
-          noDataMsg.style.display = '';
+          if (gen === renderGen) showEmpty();
           return;
         }
-
-        noDataMsg.style.display = 'none';
-        errorMsg.style.display = 'none';
 
         const byPlant = {};
         for (const row of rows) {
@@ -304,36 +194,38 @@
           byPlant[row.plant][row.date] = row.concentration;
         }
 
-        rainByStation = {};
+        const rain = {};
         try {
-          const rainUrl = `/api/rain-data?city=${encodeURIComponent(city)}&date_from=${dateFrom}&date_to=${dateTo}`;
-          const rainResp = await fetch(rainUrl);
+          const rainResp = await fetch(`/api/rain-data?${query}`);
           if (rainResp.ok) {
             for (const r of await rainResp.json()) {
-              if (!rainByStation[r.station]) rainByStation[r.station] = {};
-              rainByStation[r.station][r.date] = r.mm;
+              if (!rain[r.station]) rain[r.station] = {};
+              rain[r.station][r.date] = r.mm;
             }
           }
         } catch (_) { /* rain overlay is optional */ }
 
-        document.getElementById('rain-toggle-wrap').style.display =
-          Object.keys(rainByStation).length ? '' : 'none';
-
-        camsByDate = {};
+        const cams = {};
         try {
-          const camsUrl = `/api/cams-data?city=${encodeURIComponent(city)}&date_from=${dateFrom}&date_to=${dateTo}`;
-          const camsResp = await fetch(camsUrl);
+          const camsResp = await fetch(`/api/cams-data?${query}`);
           if (camsResp.ok) {
-            for (const r of await camsResp.json()) camsByDate[r.date] = r.grains;
+            for (const r of await camsResp.json()) cams[r.date] = r.grains;
           }
         } catch (_) { /* CAMS overlay is optional */ }
 
+        if (gen !== renderGen) return;
+        errorMsg.style.display = 'none';
+        noDataMsg.style.display = 'none';
+        rainByStation = rain;
+        camsByDate = cams;
+        document.getElementById('rain-toggle-wrap').style.display =
+          Object.keys(rain).length ? '' : 'none';
         document.getElementById('cams-toggle-wrap').style.display =
-          Object.keys(camsByDate).length ? '' : 'none';
+          Object.keys(cams).length ? '' : 'none';
 
-        const rainDates = Object.values(rainByStation).flatMap(m => Object.keys(m));
+        const rainDates = Object.values(rain).flatMap(m => Object.keys(m));
         const dates = [...new Set([
-          ...rows.map(r => r.date), ...rainDates, ...Object.keys(camsByDate)
+          ...rows.map(r => r.date), ...rainDates, ...Object.keys(cams)
         ])].sort();
 
         const plants = Object.keys(byPlant);
@@ -354,8 +246,7 @@
         renderChart();
 
       } catch (err) {
-        errorMsg.textContent = 'Greška mreže';
-        errorMsg.style.display = '';
+        if (gen === renderGen) showEmpty('Greška mreže');
       }
     }
 

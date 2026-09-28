@@ -51,112 +51,54 @@
 {% block scripts %}
   <script>
     const SERIES = [
-      { kind: 'air', label: 'zrak (dnevni maksimum)', color: TEMP_COLORS.air },
-      { kind: 'sea', label: 'more (8h)', color: TEMP_COLORS.sea }
+      { kind: 'air', label: 'zrak (dnevni maksimum)' },
+      { kind: 'sea', label: 'more (8h)' }
     ];
 
-    let chart = null;
-
-    function renderChart(payload) {
-      const dates = [...new Set(
-        SERIES.flatMap(s => (payload[s.kind] || []).map(r => r.date))
-      )].sort();
-
-      const datasets = SERIES.map(s => {
-        const byDate = {};
-        for (const r of payload[s.kind] || []) byDate[r.date] = r.temp;
-        return {
-          label: s.label,
-          data: dates.map(d => byDate[d] ?? null),
-          borderColor: s.color,
-          backgroundColor: s.color + '18',
-          tension: 0.35,
-          spanGaps: true,
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 2.5
-        };
-      }).filter(ds => ds.data.some(v => v !== null));
-
-      document.getElementById('chart-wrapper').style.display = '';
-      if (chart) chart.destroy();
-      chart = new Chart(document.getElementById('temp-chart'), {
-        type: 'line',
-        data: { labels: dates, datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            tooltip: {
-              callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} °C` }
-            }
-          },
-          scales: {
-            y: {
-              title: { display: true, text: 'Temperatura (°C)' },
-              grid: { color: 'rgba(0,0,0,0.04)' }
-            },
-            x: {
-              type: 'category',
-              title: { display: true, text: 'Datum' },
-              grid: { display: false },
-              ticks: {
-                callback: function(val) {
-                  const [, m, d] = this.getLabelForValue(val).split('-');
-                  return `${parseInt(d, 10)}.${parseInt(m, 10)}.`;
-                }
-              }
-            }
-          }
-        }
-      });
-    }
+    let renderGen = 0;
 
     async function fetchAndRender() {
       const errorMsg = document.getElementById('error-msg');
       const noDataMsg = document.getElementById('no-data-msg');
-      const chartWrapper = document.getElementById('chart-wrapper');
+      const canvas = document.getElementById('temp-chart');
+      const gen = ++renderGen;
+
+      function showError(text) {
+        errorMsg.textContent = text;
+        errorMsg.style.display = '';
+        noDataMsg.style.display = 'none';
+        clearChart(canvas);
+      }
 
       const city = document.getElementById('city-select').value;
       const dateFrom = document.getElementById('date-from').value;
       const dateTo = document.getElementById('date-to').value;
-
-      if (dateFrom > dateTo) {
-        errorMsg.textContent = 'Početni datum ne smije biti nakon završnog';
-        errorMsg.style.display = '';
-        return;
-      }
+      if (dateFrom > dateTo) return showError('Početni datum ne smije biti nakon završnog');
 
       try {
         const resp = await fetch(
           `/api/temp-data?city=${encodeURIComponent(city)}&date_from=${dateFrom}&date_to=${dateTo}`
         );
+        if (gen !== renderGen) return;
         if (!resp.ok) {
           let msg = 'Zahtjev nije uspio';
           try { msg = (await resp.json()).error || msg; } catch (_) {}
-          errorMsg.textContent = msg;
-          errorMsg.style.display = '';
-          chartWrapper.style.display = 'none';
-          noDataMsg.style.display = 'none';
-          return;
+          return showError(msg);
         }
 
         const payload = await resp.json();
+        if (gen !== renderGen) return;
         errorMsg.style.display = 'none';
 
-        if (!payload.air.length && !payload.sea.length) {
-          if (chart) { chart.destroy(); chart = null; }
-          chartWrapper.style.display = 'none';
-          noDataMsg.style.display = '';
-          return;
-        }
-
-        noDataMsg.style.display = 'none';
-        renderChart(payload);
+        const dates = [...new Set(
+          SERIES.flatMap(s => payload[s.kind].map(r => r.date))
+        )].sort();
+        const hasChart = drawSeries(canvas, dates, SERIES.map(s => ({
+          ...s, byKey: Object.fromEntries(payload[s.kind].map(r => [r.date, r.temp]))
+        })));
+        noDataMsg.style.display = hasChart ? 'none' : '';
       } catch (err) {
-        errorMsg.textContent = 'Greška mreže';
-        errorMsg.style.display = '';
+        if (gen === renderGen) showError('Greška mreže');
       }
     }
 

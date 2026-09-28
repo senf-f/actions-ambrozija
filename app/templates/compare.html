@@ -93,7 +93,7 @@
     const CITIES = {{ cities | tojson }};
     const YEARS = {{ years | tojson }};
 
-    let chart = null;
+    let renderGen = 0;
 
     function daysInMonth(year, month) {
       return new Date(year, month, 0).getDate(); // month is 1-based here
@@ -121,10 +121,6 @@
         for (let d = 1; d <= days; d++) keys.push(`${pad(m)}-${pad(d)}`);
       }
       return keys;
-    }
-
-    function axisLabel(key) {
-      return `${parseInt(key.slice(3), 10)}.${parseInt(key.slice(0, 2), 10)}.`;
     }
 
     function monthDay(dateStr) {
@@ -291,218 +287,76 @@
       return byKey;
     }
 
-    function renderChart(keys, datasets, rainDatasets, tempDatasets, camsDatasets) {
-      const chartWrapper = document.getElementById('chart-wrapper');
-      const canvas = document.getElementById('compare-chart');
-
-      const pollenDs = datasets.map((ds, i) => {
-        const color = PALETTE[i % PALETTE.length];
-        return {
-          label: ds.label,
-          data: keys.map(k => ds.byKey[k] ?? null),
-          borderColor: color,
-          backgroundColor: color + '18',
-          tension: 0.35,
-          spanGaps: true,
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 2.5,
-          order: 1
-        };
-      });
-
-      const rainDs = (rainDatasets || []).map((ds, i) => {
-        const color = RAIN_COLORS[i % RAIN_COLORS.length];
-        return {
-          label: ds.label,
-          type: 'bar',
-          data: keys.map(k => ds.byKey[k] ?? null),
-          backgroundColor: color + '66',
-          borderColor: color,
-          borderWidth: 1,
-          yAxisID: 'y1',
-          order: 2
-        };
-      });
-
-      const tempDs = (tempDatasets || []).map(ds => {
-        const color = TEMP_COLORS[ds.kind];
-        return {
-          label: ds.label,
-          data: keys.map(k => ds.byKey[k] ?? null),
-          borderColor: color,
-          backgroundColor: 'transparent',
-          borderDash: ds.kind === 'sea' ? [2, 3] : [6, 4],
-          tension: 0.35,
-          spanGaps: true,
-          pointRadius: 0,
-          pointHoverRadius: 5,
-          borderWidth: 2,
-          yAxisID: 'y2',
-          order: 0
-        };
-      });
-
-      const camsDs = (camsDatasets || []).map((ds, i) => ({
-        label: ds.label,
-        data: keys.map(k => ds.byKey[k] ?? null),
-        borderColor: CAMS_COLOR,
-        backgroundColor: 'transparent',
-        borderDash: [6, 4 + i * 4],
-        tension: 0.35,
-        spanGaps: true,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-        borderWidth: 2,
-        yAxisID: 'y3',
-        order: 0
-      }));
-
-      const scales = {
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Koncentracija' },
-          grid: { color: 'rgba(0,0,0,0.04)' }
-        },
-        x: {
-          type: 'category',
-          title: { display: true, text: 'Dan' },
-          grid: { display: false }
-        }
-      };
-
-      if (rainDs.length) {
-        scales.y1 = {
-          beginAtZero: true,
-          position: 'right',
-          title: { display: true, text: 'Oborine (mm)', color: '#2980b9' },
-          grid: { drawOnChartArea: false },
-          ticks: { color: '#2980b9' }
-        };
-      }
-
-      if (tempDs.length) {
-        scales.y2 = {
-          position: 'right',
-          title: { display: true, text: 'Temperatura (°C)', color: '#e67e22' },
-          grid: { drawOnChartArea: false },
-          ticks: { color: '#e67e22' }
-        };
-      }
-
-      if (camsDs.length) {
-        scales.y3 = {
-          beginAtZero: true,
-          position: 'right',
-          title: { display: true, text: 'Ambrozija CAMS (zrnaca/m³)', color: CAMS_COLOR },
-          grid: { drawOnChartArea: false },
-          ticks: { color: CAMS_COLOR }
-        };
-      }
-
-      chartWrapper.style.display = '';
-      if (chart) chart.destroy();
-      chart = new Chart(canvas, {
-        type: 'line',
-        data: { labels: keys.map(axisLabel), datasets: pollenDs.concat(rainDs, tempDs, camsDs) },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          scales: scales
-        }
-      });
-    }
-
     async function fetchAndRender() {
       const errorMsg = document.getElementById('error-msg');
       const noDataMsg = document.getElementById('no-data-msg');
-      const chartWrapper = document.getElementById('chart-wrapper');
+      const canvas = document.getElementById('compare-chart');
+      // Handlers fire overlapping fetches; only the newest one may draw.
+      const gen = ++renderGen;
+
+      function showError(text) {
+        errorMsg.textContent = text;
+        errorMsg.style.display = '';
+        noDataMsg.style.display = 'none';
+        clearChart(canvas);
+      }
 
       try {
-        if (CITIES.length === 0) {
-          errorMsg.textContent = 'Nema dostupnih gradova';
-          errorMsg.style.display = '';
-          return;
-        }
+        if (CITIES.length === 0) return showError('Nema dostupnih gradova');
 
         const plant = document.getElementById('plant-select').value;
-        if (!plant) {
-          errorMsg.textContent = 'Odaberite biljku';
-          errorMsg.style.display = '';
-          return;
-        }
+        if (!plant) return showError('Odaberite biljku');
 
         const series = readSeries();
-        if (series.length === 0) {
-          errorMsg.textContent = 'Dodajte barem jedan grad';
-          errorMsg.style.display = '';
-          return;
-        }
+        if (series.length === 0) return showError('Dodajte barem jedan grad');
 
         errorMsg.style.display = 'none';
 
-        const datasets = [];
+        const drawn = [];
         for (const s of series) {
-          datasets.push({
+          drawn.push({
+            kind: 'pollen',
             label: seriesLabel(s),
             byKey: await fetchPeriod(s.city, plant, s.year)
           });
         }
 
-        const rainDatasets = [];
         if (document.getElementById('rain-toggle').checked) {
           for (const s of series) {
             const byStation = await fetchPeriodRain(s.city, s.year);
             for (const [station, byKey] of Object.entries(byStation)) {
-              rainDatasets.push({ label: `${seriesLabel(s)} — ${station} (oborine)`, byKey });
+              drawn.push({ kind: 'rain', label: `${seriesLabel(s)} — ${station} (oborine)`, byKey });
             }
           }
         }
 
-        const tempDatasets = [];
         if (document.getElementById('temp-toggle').checked) {
           for (const s of series) {
             const bySeries = await fetchPeriodTemp(s.city, s.year);
             for (const [kind, byKey] of Object.entries(bySeries)) {
-              tempDatasets.push({
-                kind,
-                label: `${seriesLabel(s)} — ${TEMP_LABELS[kind]}`,
-                byKey
-              });
+              drawn.push({ kind, label: `${seriesLabel(s)} — ${TEMP_LABELS[kind]}`, byKey });
             }
           }
         }
 
-        const camsDatasets = [];
+        // CAMS only serves the last ~92 days, so older years come back empty
+        // and drawSeries drops them.
         if (document.getElementById('cams-toggle').checked) {
           for (const s of series) {
-            const byKey = await fetchPeriodCams(s.city, s.year);
-            // CAMS only serves the last ~92 days, so older years come back empty.
-            if (Object.keys(byKey).length) {
-              camsDatasets.push({ label: `${seriesLabel(s)} — CAMS model`, byKey });
-            }
+            drawn.push({
+              kind: 'cams',
+              label: `${seriesLabel(s)} — CAMS model`,
+              byKey: await fetchPeriodCams(s.city, s.year)
+            });
           }
         }
 
-        const hasData = datasets.some(ds => Object.keys(ds.byKey).length > 0)
-          || rainDatasets.some(ds => Object.keys(ds.byKey).length > 0)
-          || tempDatasets.length > 0
-          || camsDatasets.length > 0;
-        if (!hasData) {
-          if (chart) { chart.destroy(); chart = null; }
-          chartWrapper.style.display = 'none';
-          noDataMsg.style.display = '';
-          return;
-        }
-
-        noDataMsg.style.display = 'none';
-        renderChart(axisKeys(series.map(s => s.year)),
-                    datasets, rainDatasets, tempDatasets, camsDatasets);
+        if (gen !== renderGen) return;
+        const hasChart = drawSeries(canvas, axisKeys(series.map(s => s.year)), drawn);
+        noDataMsg.style.display = hasChart ? 'none' : '';
 
       } catch (err) {
-        errorMsg.textContent = 'Greška mreže';
-        errorMsg.style.display = '';
+        if (gen === renderGen) showError('Greška mreže');
       }
     }
 
