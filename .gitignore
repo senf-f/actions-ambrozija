@@ -19,5 +19,4 @@ venv/
 creds.py
 data/
 DEVNOTES.md
-TODO.md
 *.xlsx
