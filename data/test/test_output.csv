@@ -1,27 +1,22 @@
 city,plant,pollen_concentration,timestamp
-Dubrovnik,Ambrozija (Ambrosia sp.),2.2,2026-09-08 11:28:03
-Dubrovnik,Trave (Poaceae),1.1,2026-09-08 11:28:03
-Dubrovnik,Bor (Pinus sp.),0.3,2026-09-08 11:28:03
-Dubrovnik,Loboda (Chenopodiaceae),0.2,2026-09-08 11:28:03
-Dubrovnik,Crkvina (Parietaria sp.),0.2,2026-09-08 11:28:03
-Osijek,Ambrozija (Ambrosia sp.),6.4,2026-09-08 11:28:03
-Osijek,Trave (Poaceae),3.3,2026-09-08 11:28:03
-Osijek,Koprive (Urticaceae),1.5,2026-09-08 11:28:03
-Osijek,Loboda (Chenopodiaceae),1.1,2026-09-08 11:28:03
-Pula,Ambrozija (Ambrosia sp.),6.2,2026-09-08 11:28:03
-Pula,Crkvina (Parietaria sp.),6.1,2026-09-08 11:28:03
-Pula,Bor (Pinus sp.),0.8,2026-09-08 11:28:03
-Split,Ambrozija (Ambrosia sp.),2.5,2026-09-08 11:28:03
-Split,Crkvina (Parietaria sp.),0.4,2026-09-08 11:28:03
-Virovitica,Ambrozija (Ambrosia sp.),9.9,2026-09-08 11:28:03
-Virovitica,Koprive (Urticaceae),4.0,2026-09-08 11:28:03
-Virovitica,Loboda (Chenopodiaceae),2.2,2026-09-08 11:28:03
-Virovitica,Trave (Poaceae),1.5,2026-09-08 11:28:03
-Virovitica,Trputac (Plantago sp.),0.2,2026-09-08 11:28:03
-Zadar,Ambrozija (Ambrosia sp.),7.7,2026-09-08 11:28:03
-Zadar,Koprive (Urticaceae),4.0,2026-09-08 11:28:03
-Zadar,Trave (Poaceae),2.5,2026-09-08 11:28:03
-Zagreb,Ambrozija (Ambrosia sp.),9.7,2026-09-08 11:28:03
-Zagreb,Koprive (Urticaceae),3.0,2026-09-08 11:28:03
-Zagreb,Trputac (Plantago sp.),1.0,2026-09-08 11:28:03
-Zagreb,Trave (Poaceae),1.1,2026-09-08 11:28:03
+Dubrovnik,Pelin (Artemisia sp.),0.2,2026-10-01 11:34:32
+Osijek,Ambrozija (Ambrosia sp.),2.8,2026-10-01 11:34:32
+Osijek,Pelin (Artemisia sp.),0.4,2026-10-01 11:34:32
+Osijek,Trave (Poaceae),0.4,2026-10-01 11:34:32
+Pula,Čempresi (Cupressaceae),2.1,2026-10-01 11:34:32
+Pula,Pelin (Artemisia sp.),1.9,2026-10-01 11:34:32
+Pula,Bor (Pinus sp.),0.6,2026-10-01 11:34:32
+Pula,Ambrozija (Ambrosia sp.),0.6,2026-10-01 11:34:32
+Split,Crkvina (Parietaria sp.),0.8,2026-10-01 11:34:32
+Split,Ambrozija (Ambrosia sp.),0.2,2026-10-01 11:34:32
+Virovitica,Ambrozija (Ambrosia sp.),4.0,2026-10-01 11:34:32
+Virovitica,Koprive (Urticaceae),0.6,2026-10-01 11:34:32
+Virovitica,Trave (Poaceae),0.8,2026-10-01 11:34:32
+Zadar,Čempresi (Cupressaceae),4.6,2026-10-01 11:34:32
+Zadar,Koprive (Urticaceae),2.1,2026-10-01 11:34:32
+Zadar,Ambrozija (Ambrosia sp.),1.9,2026-10-01 11:34:32
+Zadar,Trave (Poaceae),1.9,2026-10-01 11:34:32
+Zagreb,Ambrozija (Ambrosia sp.),4.6,2026-10-01 11:34:32
+Zagreb,Koprive (Urticaceae),0.8,2026-10-01 11:34:32
+Zagreb,Trave (Poaceae),0.4,2026-10-01 11:34:32
+Zagreb,Loboda (Chenopodiaceae),0.2,2026-10-01 11:34:32
