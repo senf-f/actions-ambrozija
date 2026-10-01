@@ -1,6 +1,6 @@
 # TODO
 
-_Last updated: 2026-09-28_
+_Last updated: 2026-10-01_
 
 ## Code markers
 _None found._
@@ -20,6 +20,8 @@ _None found._
   - [ ] Decommission Render service (remove `render.yaml`/`Procfile` if fully off Render)
 - [ ] Pula is in `AIR_STATIONS` (`src/config.py`) but has zero `air_temp_data` rows (2026-09-02 → 2026-09-21), while the other 5 stations have ~20 each. Check whether `tx.xml` publishes Pula under a different station name, or drop it from the config.
 - [ ] Two enum members for the same oak: `Biljka.HRAST = "Hrast (Quercus ilex)"` and `Biljka.HRAST_CRNIKA = "Hrast crnika (Quercus ilex)"` (`src/biljke.py`). `HRAST` has only 24 rows, one per city, all from the one-off 2024-11-01 run, so it shows up as a plant option with no data. Decide whether to drop it from the enum and delete its rows, or relabel them as `HRAST_CRNIKA`.
+- [ ] `ubuntu-latest` switches to Ubuntu 26 on 2026-10-19. After that date, check that the scrape workflows still pass (Chrome/Chromium install, Python 3.13 setup). If something breaks, pin `ubuntu-24.04` in `scrape.yml`.
+- [ ] 2026-10-01: pollen was run by hand (run 36855638571) while the scheduled run was late. If the scheduled run also fired, check that 2026-10-01 has one row per city and plant in `db/pollen_data.db` and in the CSVs.
 
 ## Bugs
 - [ ] Concurrent scrape runs can lose a day: `scrape.yml` does `git push origin main` with no pull/rebase and no `concurrency:` group, while the three crons (05:07, 11:00, 16:05) start 3-5 h late and can overlap. Both commit the binary `db/pollen_data.db`, so the second push is rejected. Air data is unbackfillable.
