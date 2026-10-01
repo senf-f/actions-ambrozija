@@ -24,7 +24,6 @@ _None found._
 - [ ] 2026-10-01: pollen was run by hand (run 36855638571) while the scheduled run was late. If the scheduled run also fired, check that 2026-10-01 has one row per city and plant in `db/pollen_data.db` and in the CSVs.
 
 ## Bugs
-- [ ] Concurrent scrape runs can lose a day: `scrape.yml` does `git push origin main` with no pull/rebase and no `concurrency:` group, while the three crons (05:07, 11:00, 16:05) start 3-5 h late and can overlap. Both commit the binary `db/pollen_data.db`, so the second push is rejected. Air data is unbackfillable.
 - [ ] One "-" in `oborina.xml` aborts the whole rain run: `rain_scraper.py:24` uses bare `float()`, while `temp_scraper._float` already handles "-".
 - [ ] `/compare`'s `fetchPeriod` turns a 400 into "no data", and a CAMS 502 is handled differently on each chart page. Belongs with the series-shaped server interface below.
 
@@ -37,6 +36,7 @@ _None found._
 - [ ] `db_handler.setup_db` reads the module-global `DB_PATH`, and `app.routes.DB_PATH` is a second binding. Tests monkeypatch both.
 
 ## Done
+- [x] Concurrent scrape runs lost the push (hit 2026-10-01). `scrape.yml` now has `concurrency: push-to-main` and runs `git pull --rebase` before pushing (`5bb74b61`). A manual push that touches `db/` mid-run can still conflict.
 - [x] Backfill historical rain from `mrse.xlsx` (2022-01 → 2026-08) via `src/backfill_rain.py`. Zagreb-aerodrom (Pleso) + Split-Marjan. Note: DHMZ `oborina.xml` publishes Split-**aerodrom**, not Marjan, so Split history won't extend forward under the same station name.
 - [x] Commit uncommitted changes: `.gitignore` (committed in `8904c798`)
 - [x] Add `.playwright-mcp/` to `.gitignore`
