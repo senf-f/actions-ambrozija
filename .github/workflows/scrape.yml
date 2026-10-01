@@ -20,6 +20,9 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     environment: prod
+    concurrency:
+      group: push-to-main
+      cancel-in-progress: false
     env:
       BASE_DIR: ${{ github.workspace }}
       PYTHONPATH: .
@@ -50,4 +53,5 @@ jobs:
           git config --local user.name "GitHub Action"
           git add -f ${{ inputs.add_paths }}
           git commit -m "${{ inputs.commit_message }}" || echo "No changes to commit"
+          git pull --rebase origin main
           git push origin main
