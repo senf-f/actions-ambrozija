@@ -58,5 +58,7 @@ CITY_COORDS = {
 }
 
 SEA_URL = "https://vrijeme.hr/more_n.xml"
-SEA_HOUR = "08"
+# The morning reading happens at a fixed UTC instant, but the feed labels its
+# columns in local time: "08" in summer (CEST), "07" in winter (CET).
+SEA_HOUR_UTC = 6
 SEA_STATIONS = ("Split", "Pula", "Dubrovnik", "Opatija", "Crikvenica", "Zadar")

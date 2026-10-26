@@ -1,16 +1,19 @@
-"""Scrape daily maximum air temperature and sea temperature (08h) from DHMZ XML feeds."""
+"""Scrape daily maximum air temperature and morning sea temperature (06 UTC) from DHMZ XML feeds."""
 import datetime
 import xml.etree.ElementTree as ET
+from zoneinfo import ZoneInfo
 
 from src import db_handler
 from src.dhmz import fetch_xml
 from src.config import (
     AIR_STATIONS,
-    SEA_HOUR,
+    SEA_HOUR_UTC,
     SEA_STATIONS,
     SEA_URL,
     TMAX_URL,
 )
+
+ZAGREB = ZoneInfo("Europe/Zagreb")
 
 
 def _iso(datum):
@@ -23,6 +26,13 @@ def _float(text):
         return float((text or "").strip())
     except ValueError:
         return None
+
+
+def _sea_hour(iso_date):
+    """Local column label of the SEA_HOUR_UTC reading on that day."""
+    instant = datetime.datetime.fromisoformat(iso_date).replace(
+        hour=SEA_HOUR_UTC, tzinfo=datetime.timezone.utc)
+    return f"{instant.astimezone(ZAGREB).hour:02d}"
 
 
 def parse_tmax(xml_text):
@@ -47,13 +57,15 @@ def parse_tmax(xml_text):
     return iso_date, termin, rows
 
 
-def parse_sea(xml_text, hour=SEA_HOUR):
+def parse_sea(xml_text):
     """Parse more_n.xml, which holds every measurement hour of the day at once.
 
-    Returns (iso_date, [(station, temp_c), ...]) for the requested hour.
+    Returns (iso_date, hour, [(station, temp_c), ...]) for the morning reading,
+    where hour is the local label it carries that day.
     """
     root = ET.fromstring(xml_text)
     iso_date = _iso(root.findtext("Datum", ""))
+    hour = _sea_hour(iso_date)
 
     blocks = root.findall("Podatci")
     header = [t.text.strip().zfill(2) for t in blocks[0].findall("Termin") if t.text]
@@ -67,7 +79,7 @@ def parse_sea(xml_text, hour=SEA_HOUR):
         temp = _float(block.findall("Termin")[col].text)
         if temp is not None:
             rows.append((station, temp))
-    return iso_date, rows
+    return iso_date, hour, rows
 
 
 def main():
@@ -81,11 +93,11 @@ def main():
                               temp_c=temp, hour=termin, date=date)
         print(f"[air max] {date} (termin {termin}h): stored {len(rows)} station(s)")
 
-        date, rows = parse_sea(fetch_xml(SEA_URL))
+        date, hour, rows = parse_sea(fetch_xml(SEA_URL))
         for station, temp in rows:
             db_handler.insert(conn, "sea_temp_data", station=station, temp_c=temp,
-                              hour=SEA_HOUR, date=date)
-        print(f"[sea] {date} {SEA_HOUR}h: stored {len(rows)} station(s)")
+                              hour=hour, date=date)
+        print(f"[sea] {date} {hour}h: stored {len(rows)} station(s)")
     finally:
         conn.close()
 

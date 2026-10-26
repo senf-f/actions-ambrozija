@@ -42,8 +42,18 @@ def test_parse_tmax_date_comes_from_feed_not_today():
     assert date == "2026-09-01"
 
 
-def test_parse_sea_picks_08_column():
-    date, rows = parse_sea(SEA)
-    assert date == "2026-08-31"
+def test_parse_sea_picks_08_column_in_summer():
+    date, hour, rows = parse_sea(SEA)
+    assert (date, hour) == ("2026-08-31", "08")
     # Božava not a target; Zadar has no 08h reading
+    assert rows == [("Split", 26.4)]
+
+
+def test_parse_sea_picks_07_column_after_dst_ends():
+    """The same 06 UTC reading is labelled 07 in CET, and every column shifts."""
+    winter = (SEA.replace("31.08.2026", "25.10.2026")
+                 .replace("<Termin>07</Termin><Termin>08</Termin><Termin>11</Termin>",
+                          "<Termin>06</Termin><Termin>07</Termin><Termin>10</Termin>"))
+    date, hour, rows = parse_sea(winter)
+    assert (date, hour) == ("2026-10-25", "07")
     assert rows == [("Split", 26.4)]
